@@ -1,0 +1,16 @@
+{
+    "app_locale": "es_ES",
+    "app_locale_messages": "wp_monitor_messages",
+    "app_messages_dir": "locales",
+    "app_url": "http://127.0.0.2:8001/",
+    "app_data": "/wpm_data",
+    "app_reload_time": 60000,
+    "default_range_type": "last_24_hours",
+    "log_files": "/logs",
+    "jobs_file": "jobs",
+    "jobs_executed_file": "jobs_executed",
+    "telegram_token": "",
+    "telegram_chat_id": "",
+    "telegram_enabled": true,
+    "use_curl": false
+}

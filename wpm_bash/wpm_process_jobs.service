@@ -1,0 +1,11 @@
+[Unit]
+Description=Process WP_Monitor jobs
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/wp_monitor/wpm_bash/wpm_jobs.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

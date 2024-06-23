@@ -1,0 +1,3 @@
+#: WP_Monitor.php:92
+msgid "The configuration file <config.json> does not exist."
+msgstr "El archivo de configuración <config.json> no existe."
