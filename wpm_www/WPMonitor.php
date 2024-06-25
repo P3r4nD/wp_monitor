@@ -70,6 +70,23 @@ class WPMonitor {
     protected function loadConfig() {
 
         $configPath = getenv('WPM_PATH') . self::CONFIG_FILE;
+        
+        if (!file_exists($configPath)) {
+            throw new Exception($this->translate("The configuration file <config.json> does not exist."));
+        }
+        
+        $configData = file_get_contents($configPath);
+        $config = json_decode($configData, true);
+
+		if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception("Error al decodificar el archivo <config.json>: " . json_last_error_msg());
+        }
+
+        /**
+         * Path to application directory
+         *
+         */
+        $this->appPath = getenv('WPM_PATH') ?? null;
 
         /**
         * Path to the application data directory.
@@ -87,23 +104,6 @@ class WPMonitor {
         $this->appLocaleMessages = $this->appPath.$config['app_locale_messages'] ?? null;
 
         $this->setLocale($this->appLocale);
-
-        if (!file_exists($configPath)) {
-            throw new Exception($this->translate("The configuration file <config.json> does not exist."));
-        }
-
-        $configData = file_get_contents($configPath);
-        $config = json_decode($configData, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Error al decodificar el archivo <config.json>: " . json_last_error_msg());
-        }
-
-        /**
-         * Path to application directory
-         *
-         */
-        $this->appPath = getenv('WPM_PATH') ?? null;
 
         /**
         * Path to the application data directory.
@@ -327,13 +327,39 @@ class WPMonitor {
 
         return $outdated;
     }
+    
+    public function readWPData() {
+        
+        $wp_files = glob($this->appPath."/wpm_data/*.json");
+        
+        if($wp_files) {
+            $files_with_numbers = [];
+            foreach ($wp_files as $file) {
+                $filename = basename($file, ".json");
+                if (ctype_digit($filename)) {
+                    $files_with_numbers[(int)$filename] = $file;
+                }
+            }
 
+            // Sort the associative array by numeric key
+            ksort($files_with_numbers, SORT_NUMERIC);
+
+            // Get the array of sorted files
+            $sorted_files = array_values($files_with_numbers);
+            
+            return $sorted_files;
+        }
+        
+        return false;
+        
+        
+    }
+    
     public function printTableWP() {
 
-        $wp_installs = glob($this->appPath."/wpm_data/*.json");
-
-        if (is_array($wp_installs)) {
-            sort($wp_installs);
+        $wp_installs = $this->readWPData();
+        
+        if($wp_installs){
             foreach ($wp_installs as $wp_file) {
                 $json = file_get_contents($wp_file);
                 $json_data = json_decode($json, true);
@@ -357,6 +383,8 @@ class WPMonitor {
                 echo "<td class='table-cell-center'>" . $json_data['version'] . "</td>";
                 echo "</tr>";
             }
+        }else{
+            return false;
         }
     }
 
