@@ -3,10 +3,11 @@
 PLESK_CMD="/usr/sbin/plesk"
 BASE_DOMAINS_DIR="/var/www/vhosts"
 ERROR_LOG_FILE="error_log"
+USER_GROUP="false"
 PATH_DATA="/opt/wp_monitor/wpm_data/"
 PATH_LOGS="logs/"
 WPM_INFO_JSON="wpi.json"
-RECIPIENT="example@gmail.com"
+RECIPIENT="example @ gmail . com"
 SUBJECT="WP_Monitor Summary"
 BODY="WP_Monitor Summary"
 
@@ -47,6 +48,11 @@ for domain in $unique_domains; do
         tar -czf "$LOGS_DIR${domain}_$ERROR_LOG_FILE.tar.gz" -C "$BASE_DOMAINS_DIR/$domain/$PATH_LOGS" $ERROR_LOG_FILE
     fi
 done
+
+# If USER_GROUP is set and not false, change directory ownership recursively
+if [ ! -z "$USER_GROUP" ] && [ "$USER_GROUP" != "false" ]; then
+    chown -R "$USER_GROUP" "$PATH_DATA"
+fi
 
 # Send the summary by email with the JSON file attached
 #echo "$BODY" | mail --attach=$PATH_DATA$WPM_INFO_JSON -s "$SUBJECT" $RECIPIENT
