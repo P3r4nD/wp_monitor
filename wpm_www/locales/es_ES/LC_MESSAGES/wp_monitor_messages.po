@@ -45,3 +45,8 @@ msgstr "Error de la API de Telegram: %s"
 #: WP_Monitor.php:748
 msgid "Error sending message using [file_get_contents]."
 msgstr "Error al enviar el mensaje usando [file_get_contents]."
+
+
+#: index.php
+msgid "This Wordpress installation is running jobs, wait for it to finish to add new jobs."
+msgstr "Esta instalación Wordpress está ejecutando jobs, espera a que termine para añadir nuevos jobs."
