@@ -19,6 +19,7 @@ class WPMonitor {
     const CONFIG_FILE = '/config.json';
 
     /**
+    * $initStatus
     * @var string $appLocale         App locale config
     * @var string $appLocaleMessages App locale messages
     * @var string $appMessagesDir    App locale messages dir
@@ -35,7 +36,8 @@ class WPMonitor {
     * @var string $telegramChatId    Telegram chat ID
     * @var bool   $telegramEnabled   Flag to enable/disable Telegram notifications
     */
-
+    
+    protected $initStatus;
     protected $appLocale;
     protected $appLocaleMessages;
     protected $appMessagesDir;
@@ -60,6 +62,13 @@ class WPMonitor {
     *
     */
     public function __construct() {
+        
+        // Default init status
+        $this->initStatus = True;
+        
+        // Default lang
+        $this->appLocale = "es_ES";
+        
         // Load config
         $this->loadConfig();
     }
@@ -68,53 +77,71 @@ class WPMonitor {
      *
      */
     protected function loadConfig() {
-
-        $configPath = getenv('WPM_PATH') . self::CONFIG_FILE;
         
-        if (!file_exists($configPath)) {
-            throw new Exception($this->translate("The configuration file <config.json> does not exist."));
+        $this->setDefaultLocale($this->appLocale);
+        
+        $wpm_path = getenv('WPM_PATH');
+        
+        if (!$wpm_path) {
+            $this->initStatus = False;
+            throw new Exception($this->translate("The environment variable [WPM_PATH] is not defined. Make sure you do it."));
         }
         
-        $configData = file_get_contents($configPath);
-        $config = json_decode($configData, true);
-
-		if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Error al decodificar el archivo <config.json>: " . json_last_error_msg());
-        }
-
         /**
          * Path to application directory
          *
          */
         $this->appPath = getenv('WPM_PATH') ?? null;
-
-        /**
-        * Path to the application data directory.
-        */
-        $this->appLocale = $this->appPath.$config['app_locale'] ?? null;
-
-        /**
-        * Path to the application data directory.
-        */
-        $this->appMessagesDir = __DIR__ . $this->appPath.$config['app_messages_dir'] ?? null;
-
-        /**
-        * Path to the application data directory.
-        */
-        $this->appLocaleMessages = $this->appPath.$config['app_locale_messages'] ?? null;
-
-        $this->setLocale($this->appLocale);
+        
+        // Check if the application path is configured.
+        if (empty($this->appPath) || !$this->appPath || @!file_exists($this->appPath)) {
+            $this->initStatus = False;
+            throw new Exception($this->translate("The [app_path] is not set correctly. Make sure the directory you defined in the [WPM_PATH] environment variable exists."));    
+        }
+        
+        $configPath = getenv('WPM_PATH') . self::CONFIG_FILE;
+        
+        if (!file_exists($configPath)) {
+            $this->initStatus = False;
+            throw new Exception($this->translate("The configuration file [config.json] does not exist."));
+        }
+        
+        $configData = file_get_contents($configPath);
+        $config = json_decode($configData, true);
+        
+        // Check for json errors in [config.json]
+	if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("Error decoding file [config.json]: %s");
+            throw new Exception(sprintf($msg_error, json_last_error_msg()));
+        }
 
         /**
         * Path to the application data directory.
         */
         $this->appData = $this->appPath.$config['app_data'] ?? null;
-
+        
+        // Check if the data application path is configured or exist.
+        if (!is_dir($this->appData)) {
+            $this->initStatus = False;
+            throw new Exception($this->translate("Data directory [app_data] does not exist. Make sure it is the same one you configured in your bash script and modify [app_data] in [config.json]."));
+        }
+        
         /**
         * URL of the application.
         */
         $this->appUrl = $config['app_url'] ?? null;
-
+        
+        // Current url server
+        $current_url = $this->getCurrentUrl();
+        
+        // Check if the app url is configured and is the same than server.
+        if (empty($this->appUrl) || $this->appUrl === 'http://127.0.0.2:8001/' || $current_url != $this->appUrl) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("The URL '%s' in [app_url] is not responding or is not configured correctly in the config.json file.");
+            throw new Exception(sprintf($msg_error, $this->appUrl));
+        }
+        
         /**
         * Reload time for the application, in milliseconds.
         */
@@ -124,17 +151,38 @@ class WPMonitor {
         * Path to the log files directory.
         */
         $this->logFilesPath = $this->appData.$config['log_files'];
-
+        
+        // Check if dir log is configured.
+        if (!is_dir($this->logFilesPath)) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("The log directory '%s' for does not exist. Make sure it's the same one you configured in your bash script and modify [log_files] in [config.json].");
+            throw new Exception(sprintf($msg_error, $this->logFilesPath));
+        }
+        
         /**
         * Path to the jobs file.
         */
         $this->jobsFile = $this->appPath."/".$config['jobs_file'] ?? null;
-
+        
+        // Check if the jobs file is configured.
+        if (!file_exists($this->jobsFile)) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("The jobs file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH] and modify [jobs_file] in [config.json].");
+            throw new Exception(sprintf($msg_error, $this->jobsFile));
+        }
+        
         /**
         * Path to the executed jobs file.
         */
         $this->jobsExecutedFile = $this->appPath."/".$config['jobs_executed_file'] ?? null;
-
+        
+        // Check if the jobs executed file is configured.
+        if (!file_exists($this->jobsExecutedFile)) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("The jobs executed file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH] and modify [jobs_executed_file] in [config.json].");
+            throw new Exception(sprintf($msg_error, $this->jobsExecutedFile));
+        }
+        
         /**
         * Default range type for logs.
         */
@@ -154,53 +202,70 @@ class WPMonitor {
         * Whether Telegram notifications are enabled.
         */
         $this->telegramEnabled = $config['telegram_enabled'] ?? null;
+        
+        // Check telegram message is enabled.
+        if ($this->telegramEnabled) {
 
+            if((!$this->telegramToken || $this->telegramToken === "telegram-bot-token") || (!$this->telegramChatId || $this->telegramChatId === "telegram-chat-id")) {
+                throw new Exception("To activate sending messages to Telegram you must configure [telegram_token] and [telegram_chat_id] in your [config.json] file.");
+
+            }
+        }
+        
         /**
         * Whether to use cURL for HTTP requests.
         */
         $this->useCurl = $config['use_curl'] ?? true;
 
+        /**
+        * Path to the application data directory.
+        */
+        $this->appLocale = $this->appPath.$config['app_locale'] ?? null;
 
-        // Check if the application path is configured.
-        if (empty($this->appPath)) {
-            throw new Exception("El PATH de la aplicación (app_path) no está configurado correctamente en el archivo config.json.");
-        }
+        /**
+        * Path to the application data directory.
+        */
+        $this->appMessagesDir = __DIR__ . $this->appPath.$config['app_messages_dir'] ?? null;
 
-        // Check if the data application path is configured.
-        if (!is_dir($this->appData)) {
-            throw new Exception("El directorio de logs $this->logFilesPath no existe. Asegúrate de que es el mismo que configuraste en tu script bash y modifica config.json.");
-        }
+        /**
+        * Path to the application data directory.
+        */
+        $this->appLocaleMessages = $this->appPath.$config['app_locale_messages'] ?? null;
+        
+        $this->setLocale($this->appLocale);
+        
+    }
+    
+    public function getInitStatus() {
+        return $this->initStatus;
+    }
+    
+    private function getCurrentUrl() {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+        $domainName = $_SERVER['HTTP_HOST'];
+        $requestUri = $_SERVER['REQUEST_URI'];
 
-        // Check if the jobs file is configured.
-        if (!file_exists($this->jobsFile)) {
-            throw new Exception("El archivo jobs '$this->jobsFile' no existe. Asegúrate de que se encuentre dentro del directorio que has definido en WPM_PATH");
-        }
-
-        // Check if the jobs file is configured.
-        if (!file_exists($this->jobsExecutedFile)) {
-            throw new Exception("El archivo jobs '$this->jobsFile' no existe. Asegúrate de que se encuentre dentro del directorio que has definido en WPM_PATH");
-        }
-
-        // Check if the app url is configured.
-        if (empty($this->appUrl) || $this->appUrl === 'http://127.0.0.2:8001/api') {
-            throw new Exception("La URL de la aplicación (app_url) no está configurada correctamente en el archivo config.json.");
-        }
-
-        // Check if dir log is configured.
-        if (!is_dir($this->logFilesPath)) {
-            throw new Exception("El directorio de logs $this->logFilesPath no existe. Asegúrate de que es el mismo que configuraste en tu script bash y modifica config.json.");
-        }
-
-        // Check telegram message is enabled.
-        if ($this->telegramEnabled) {
-
-            if((!$this->telegramToken || $this->telegramToken === "telegram-bot-token") || (!$this->telegramChatId || $this->telegramChatId === "telegram-chat-id")) {
-                throw new Exception("Para activar el envío de mensajes a Telegram debes configurar 'telegram_token' y 'telegram_chat_id' en tu archivo config.json.");
-
-            }
+        return $protocol . $domainName;
+    }
+    public function urlExists($url) {
+        
+        $headers = @get_headers($url);
+        
+        if ($headers && strpos($headers[0], '200') !== false) {
+            return true;
+        } else {
+            return false;
         }
     }
-
+    
+    public function setDefaultLocale($locale) {
+        
+        $this->appLocaleMessages = "wp_monitor_messages";
+        $this->appMessagesDir = "locales/";
+        
+        $this->setLocale($locale);
+    }
+    
     public function setLocale($locale) {
         $this->appLocale = $locale;
 
@@ -619,7 +684,7 @@ class WPMonitor {
     // Public function to send a message to Telegram
     public function sendMessageToTelegram($message) {
         if (empty($this->telegramToken) || empty($this->telegramChatId)) {
-            throw new Exception("El token de Telegram y el ID de chat deben estar configurados.");
+            throw new Exception("To activate sending messages to Telegram you must configure [telegram_token] and [telegram_chat_id] in your [config.json] file.");
         }
 
         if ($this->useCurl) {
@@ -653,7 +718,8 @@ class WPMonitor {
 
         $response = json_decode($result, true);
         if (!$response['ok']) {
-            throw new Exception("Error de la API de Telegram: " . $response['description']);
+            $msg_error = $this->translate("Telegram API error: %s");
+            throw new Exception(sprintf($msg_error, $response['description']));
         }
 
         return $response;
@@ -673,16 +739,19 @@ class WPMonitor {
                 'content' => http_build_query($data),
             ],
         ];
+        
         $context  = stream_context_create($options);
+        
         $result = file_get_contents($url, false, $context);
 
         if ($result === FALSE) {
-            throw new Exception("Error al enviar el mensaje usando file_get_contents.");
+            throw new Exception("Error sending message using [file_get_contents].");
         }
 
         $response = json_decode($result, true);
         if (!$response['ok']) {
-            throw new Exception("Error de la API de Telegram: " . $response['description']);
+            $msg_error = $this->translate("Telegram API error: %s");
+            throw new Exception(sprintf($msg_error, $response['description']));
         }
 
         return $response;

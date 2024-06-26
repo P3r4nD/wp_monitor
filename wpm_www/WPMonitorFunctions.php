@@ -7,9 +7,12 @@ function isProtectedDirectory() {
         return true;
     }elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
         return true;
+    }elseif (isset($_SERVER['AUTH_TYPE'])) {
+        return true;
     } else {
         return false;
     }
 }
+
 $initErrors = false;
 ?>
