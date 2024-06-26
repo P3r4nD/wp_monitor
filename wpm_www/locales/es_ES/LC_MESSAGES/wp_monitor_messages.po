@@ -1,3 +1,47 @@
-#: WP_Monitor.php:92
-msgid "The configuration file <config.json> does not exist."
-msgstr "El archivo de configuración <config.json> no existe."
+#: WP_Monitor.php:87
+msgid "The environment variable [WPM_PATH] is not defined. Make sure you do it."
+msgstr "La variable de entorno [WPM_PATH] no está definida. Asegúrate de definirla."
+
+#: WP_Monitor.php:99
+msgid "The [app_path] is not set correctly. Make sure the directory you defined in the [WPM_PATH] environment variable exists."
+msgstr "El [app_path] no está configurado correctamente. Asegúrate de que el directorio que definiste en la variable de entorno [WPM_PATH] existe."
+
+#: WP_Monitor.php:106
+msgid "The configuration file [config.json] does not exist."
+msgstr "El archivo de configuración [config.json] no existe."
+
+#: WP_Monitor.php:115
+msgid "Error decoding file [config.json]: %s"
+msgstr "Error al decodificar el archivo [config.json]: %s"
+
+#: WP_Monitor.php:127
+msgid "Data directory [app_data] does not exist. Make sure it is the same one you configured in your bash script and modify [app_data] in [config.json]."
+msgstr "El directorio de datos [app_data] no existe. Asegúrate de que es el mismo que configuraste en tu script bash y modifica [app_data] en [config.json]."
+
+#: WP_Monitor.php:141
+msgid "The URL '%s' in [app_url] is not responding or is not configured correctly in the config.json file."
+msgstr "La URL '%s' en [app_url] no responde o no está configurada correctamente en el archivo config.json."
+
+#: WP_Monitor.php:158
+msgid "The log directory '%s' for does not exist. Make sure it's the same one you configured in your bash script and modify [log_files] in [config.json]."
+msgstr "El directorio de logs '%s' para no existe. Asegúrate de que es el mismo que configuraste en tu script bash y modifica [log_files] en [config.json]."
+
+#: WP_Monitor.php:170
+msgid "The jobs file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH] and modify [jobs_file] in [config.json]."
+msgstr "El archivo jobs '%s' no existe. Asegúrate de que se encuentre dentro del directorio que has definido en [WPM_PATH] y modifica [jobs_file] en [config.json]."
+
+#: WP_Monitor.php:182
+msgid "The jobs executed file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH] and modify [jobs_executed_file] in [config.json]."
+msgstr "El archivo de trabajos ejecutados '%s' no existe. Asegúrese de que esté dentro del directorio que definió en [WPM_PATH] y modifique [jobs_executed_file] en [config.json]."
+
+#: WP_Monitor.php:210
+msgid "To activate sending messages to Telegram you must configure [telegram_token] and [telegram_chat_id] in your [config.json] file."
+msgstr "Para activar el envío de mensajes a Telegram debes configurar [telegram_token] y [telegram_chat_id] en tu archivo [config.json]."
+
+#: WP_Monitor.php:722
+msgid "Telegram API error: %s"
+msgstr "Error de la API de Telegram: %s"
+
+#: WP_Monitor.php:748
+msgid "Error sending message using [file_get_contents]."
+msgstr "Error al enviar el mensaje usando [file_get_contents]."

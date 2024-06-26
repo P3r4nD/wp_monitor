@@ -13,18 +13,21 @@ require_once 'WPMonitor.php';
 try {
     $wpMonitor = new WPMonitor();
     //$wpMonitor->sendMessageToTelegram("Mensaje de prueba desde WPMonitor.");
+    $initError = false;
     require_once 'WPMonitorAPI.php';
 } catch (Exception $e) {
-    $initErrors =  $e->getMessage();
+    $initError = true;
+    $initErrors = $e->getMessage();
 }
 
-if($WPMonitor->telegramEnabled()){
+if (!$initErrors && $WPMonitor->telegramEnabled()) {
     try {
         $wpMonitor->sendMessageToTelegram("WP Monitor iniciado correctamente");
     } catch (Exception $e) {
         echo $e->getMessage();
     }
 }
+
 if (!isset($_SESSION['first_visit_time'])) {
     $_SESSION['first_visit_time'] = date("d-m-Y H:i:s");
 }
@@ -277,7 +280,8 @@ if (!isset($_SESSION['first_visit_time'])) {
 
         <div class="container-fluid">
 
-        <?php if (!isProtectedDirectory()) {
+            <?php
+            if (!isProtectedDirectory() && !$initError) {
 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['protecting'])) {
 

@@ -13,8 +13,20 @@ if ($jobsDir === false) {
 }
 
 $jobFilePath = $jobsDir . '/jobs.txt';
-$jobExecutedFilePath = $jobsDir . '/jobs_executed.txt';
+$jobExecutedFilePath = $jobsDir . '/jobs_executed';
 
 
 var_dump($jobFilePath, $jobExecutedFilePath);
+
+require_once 'WPMonitorFunctions.php';
+require_once 'WPMonitor.php';
+
+$WPMonitor = new WPMonitor();
+$data = $WPMonitor->readWPData();
+
+if($data){
+    echo "<pre>";
+    print_r($data);
+    echo "</pre>";
+}
 ?>
