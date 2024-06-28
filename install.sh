@@ -144,6 +144,22 @@ start_service() {
     echo "Service started and enabled"
 }
 
+# Update paths in wpm_jobs.sh
+update_wpm_jobs_paths() {
+    WPM_JOBS_FILE="$BASE_DIR/wpm_bash/wpm_jobs.sh"
+
+    # Ensure the wpm_jobs.sh file exists
+    if [[ ! -f "$WPM_JOBS_FILE" ]]; then
+        echo "Error: $WPM_JOBS_FILE not found!"
+        exit 1
+    fi
+
+    # Update paths in wpm_jobs.sh
+    sed -i "s|^JOBS_FILE=.*|JOBS_FILE=\"$BASE_DIR/wp_monitor/jobs\"|" "$WPM_JOBS_FILE"
+    sed -i "s|^JOBS_EXECUTED_FILE=.*|JOBS_EXECUTED_FILE=\"$BASE_DIR/jobs_executed\"|" "$WPM_JOBS_FILE"
+    sed -i "s|^LOCK_FILE=.*|LOCK_FILE=\"$BASE_DIR/wpm_data/tmp/wp_monitor.lock\"|" "$WPM_JOBS_FILE"
+}
+
 # 1. Detect control panel
 detect_control_panel
 control_panel=$?
@@ -203,8 +219,13 @@ if [ "$check" = false ]; then
     chown -R "$user_group" "$BASE_DIR/wpm_data"
 fi
 
+# Modify BASE_DIR in wpm_bash/wpm_jobs.sh
+echo "BASE_DIR updated in wpm_bash/wpm_jobs.sh"
+if [ "$check" = false ]; then
+    update_wpm_jobs_paths
+fi
 
-# Modificar USER_GROUP en los scripts de cron
+# Modify USER_GROUP in CRON scripts
 if [ $control_panel -eq 1 ]; then
     cron_file="$BASE_DIR/wpm_bash/cpanel/wpm_cron_cpanel.sh"
 elif [ $control_panel -eq 2 ]; then
@@ -212,6 +233,7 @@ elif [ $control_panel -eq 2 ]; then
 fi
 
 echo "Will be modified USER_GROUP=$user_group in file $cron_file (CRON)"
+
 if [ "$check" = false ]; then
     sed -i "s/USER_GROUP=\"false\"/USER_GROUP=\"$user_group\"/" $cron_file
 fi
