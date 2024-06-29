@@ -117,7 +117,7 @@ create_cron_job() {
 }
 
 install_service() {
-    local service_path="/etc/systemd/system/wp_monitor_jobs.service"
+    local service_path="/etc/systemd/system/wpm_jobs_service.service"
     local source_service="$BASE_DIR/wpm_bash/wpm_jobs_service.service"
 
     if [ -f "$source_service" ];then
