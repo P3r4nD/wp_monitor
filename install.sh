@@ -1,6 +1,8 @@
 #!/bin/bash
 
 BASE_DIR=$(dirname "$(realpath "$0")")
+PATH_DATA="$BASE_DIR/wpm_data/"
+
 echo "WP Monior base dir: $BASE_DIR"
 
 # Check that everything is configured correctly before proceed
@@ -117,17 +119,11 @@ create_cron_job() {
 }
 
 install_service() {
-    local service_path="/etc/systemd/system/wpm_jobs_service.service"
+    local service_path="/etc/systemd/system/wp_monitor_jobs.service"
     local source_service="$BASE_DIR/wpm_bash/wpm_jobs_service.service"
 
     if [ -f "$source_service" ];then
         if [ "$check" = false ]; then
-
-            # Make wpm_jobs.sh executable
-            if [ "$check" = false ]; then
-                chmod +x "$BASE_DIR/wpm_bash/wpm_jobs.sh"
-            fi
-
             # Modify the ExecStart path in the service file if necessary
             if [[ "$BASE_DIR" != "/opt/wp_monitor" ]]; then
                 sed "s|ExecStart=/opt/wp_monitor/wpm_bash/wpm_jobs.sh|ExecStart=$BASE_DIR/wpm_bash/wpm_jobs.sh|" "$source_service" > "$service_path"
@@ -238,10 +234,18 @@ elif [ $control_panel -eq 2 ]; then
     cron_file="$BASE_DIR/wpm_bash/plesk/wpm_cron_plesk.sh"
 fi
 
-echo "Will be modified USER_GROUP=$user_group in file $cron_file (CRON)"
+echo "Modify USER_GROUP=$user_group in file $cron_file (CRON)"
 
 if [ "$check" = false ]; then
     sed -i "s/USER_GROUP=\"false\"/USER_GROUP=\"$user_group\"/" $cron_file
+fi
+
+
+echo "Modify PATH_DATA=$PATH_DATA in file $cron_file (CRON)"
+if [ "$check" = false ]; then
+    if [ "$BASE_DIR" != "/opt/wp_monitor" ]; then
+        sed -i "s|PATH_DATA=\"/opt/wp_monitor/wpm_data/\"|PATH_DATA=\"$PATH_DATA\"|" "$cron_file"
+    fi
 fi
 
 # 4. Ask for CRON creation
