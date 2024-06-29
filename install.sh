@@ -124,6 +124,10 @@ install_service() {
 
     if [ -f "$source_service" ];then
         if [ "$check" = false ]; then
+
+            # Make wpm_jobs.sh executable
+            chmod +x "$BASE_DIR/wpm_bash/wpm_jobs.sh"
+
             # Modify the ExecStart path in the service file if necessary
             if [[ "$BASE_DIR" != "/opt/wp_monitor" ]]; then
                 sed "s|ExecStart=/opt/wp_monitor/wpm_bash/wpm_jobs.sh|ExecStart=$BASE_DIR/wpm_bash/wpm_jobs.sh|" "$source_service" > "$service_path"
@@ -256,17 +260,24 @@ if [[ "$create_cron" == "Y" || "$create_cron" == "y" ]]; then
     echo -n "Every how many minutes should the CRON be executed?: "
     read interval
 
-    # 4.2 Modify USER_GROUP in the corresponding script and create CRON
+    # 4.2 Determine CRON to execute
     if [ "$control_panel" -eq 1 ];then
         cron_file="$BASE_DIR/wpm_bash/cpanel/wpm_cron_cpanel.sh"
     elif [ "$control_panel" -eq 2 ]; then
         cron_file="$BASE_DIR/wpm_bash/plesk/wpm_cron_plesk.sh"
     fi
+
+    # 4.3 Make cron_file executable
+    chmod +x "$cron_file"
+
+    # 4.2 Modify USER_GROUP in the corresponding script and create CRON
     echo "The USER_GROUP variable of the file is set $cronfile to USER_GROUP=$user_group"
     if [ "$check" = false ]; then
         sed -i "s/USER_GROUP=\"false\"/USER_GROUP=\"$user_group\"/" "$cron_file"
         create_cron_job "$interval" "$cron_file"
     fi
+
+
     echo "CRON job created to run ever $interval minutos ('*/$interval * * * * $script')"
 fi
 
