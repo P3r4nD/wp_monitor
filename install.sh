@@ -122,6 +122,12 @@ install_service() {
 
     if [ -f "$source_service" ];then
         if [ "$check" = false ]; then
+
+            # Make wpm_jobs.sh executable
+            if [ "$check" = false ]; then
+                chmod +x "$BASE_DIR/wpm_bash/wpm_jobs.sh"
+            fi
+
             # Modify the ExecStart path in the service file if necessary
             if [[ "$BASE_DIR" != "/opt/wp_monitor" ]]; then
                 sed "s|ExecStart=/opt/wp_monitor/wpm_bash/wpm_jobs.sh|ExecStart=$BASE_DIR/wpm_bash/wpm_jobs.sh|" "$source_service" > "$service_path"
