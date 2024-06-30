@@ -220,9 +220,9 @@ else
     fi
 fi
 
-echo "Permissions to 'jobs' file will be applied "
+echo "Permissions to 'jobs' file will be applied $user_group"
 if [ "$check" = false ]; then
-    chown -R "$user_group" "$BASE_DIR/wpm_data"
+    chown "$user_group" "$BASE_DIR/jobs"
 fi
 
 echo "Permissions will be applied $user_group a $BASE_DIR/wpm_data"
