@@ -4,6 +4,7 @@
 JOBS_FILE="/opt/wp_monitor/jobs"
 JOBS_EXECUTED_FILE="/opt/wp_monitor/jobs_executed"
 LOCK_FILE="/opt/wp_monitor/wpm_data/tmp/wp_monitor.lock"
+PANEL=""
 
 # Record the result of a job
 log_job_execution() {
@@ -13,12 +14,16 @@ log_job_execution() {
     echo "$timestamp - $job - $status" >> $JOBS_EXECUTED_FILE
 }
 
-# uUpdate WordPress version
+# Update WordPress version
 update_wordpress() {
     local wp_id=$1
     local job="Update WordPress ID $wp_id"
     echo "Updating WordPress for ID installation $wp_id"
-    response=$(wp-toolkit --update $wp_id 2>&1)
+    if [ "$PANEL" = "2" ]; then
+        response=$(/usr/sbin/plesk ext wp-toolkit --update $wp_id 2>&1)
+    elif [ "$PANEL" = "1" ]; then
+        response=/usr/local/bin/wp-toolkit --update $wp_id 2>&1
+    fi
     if [ $? -eq 0 ]; then
         log_job_execution "$job" "Success"
     else
@@ -32,7 +37,11 @@ update_plugin() {
     local plugin_name=$2
     local job="Update plugin $plugin_name for installation ID $wp_id"
     echo "Updating plugin $plugin_name for installation ID $wp_id"
-    response=$(wp-toolkit --plugin update $wp_id --name=$plugin_name 2>&1)
+    if [ "$PANEL" = "2" ]; then
+        response=$(/usr/sbin/plesk ext wp-toolkit --plugin update $wp_id --name=$plugin_name 2>&1)
+    elif [ "$PANEL" = "1" ]; then
+        response=/usr/local/bin/wp-toolkit --plugin update $wp_id --name=$plugin_name 2>&1
+    fi
     if [ $? -eq 0 ]; then
         log_job_execution "$job" "Success"
     else
@@ -46,7 +55,11 @@ update_template() {
     local template_name=$2
     local job="Update template $template_name for installation ID $wp_id"
     echo "Updating template $template_name for installation ID $wp_id"
-    response=$(wp-toolkit --theme update $wp_id --name=$template_name 2>&1)
+    if [ "$PANEL" = "2" ]; then
+        response=$(/usr/sbin/plesk ext wp-toolkit --theme update $wp_id --name=$template_name 2>&1)
+    elif [ "$PANEL" = "1" ]; then
+        response=/usr/local/bin/wp-toolkit --theme update $wp_id --name=$template_name 2>&1
+    fi
     if [ $? -eq 0 ]; then
         log_job_execution "$job" "Success"
     else
@@ -60,7 +73,11 @@ disable_plugin() {
     local plugin_name=$2
     local job="Disable plugin $plugin_name for installation ID $wp_id"
     echo "Disabling plugin $plugin_name for installation ID $wp_id"
-    response=$(wp-toolkit --plugin deactivate $wp_id --name=$plugin_name 2>&1)
+    if [ "$PANEL" = "2" ]; then
+        response=$(/usr/sbin/plesk ext wp-toolkit --plugin deactivate $wp_id --name=$plugin_name 2>&1)
+    elif [ "$PANEL" = "1" ]; then
+        response=/usr/local/bin/wp-toolkit --plugin deactivate $wp_id --name=$plugin_name 2>&1
+    fi
     if [ $? -eq 0 ]; then
         log_job_execution "$job" "Success"
     else
