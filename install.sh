@@ -150,8 +150,8 @@ start_service() {
     echo "Service started and enabled"
 }
 
-# Update paths in wpm_jobs.sh
-update_wpm_jobs_paths() {
+# Update paths and panel in wpm_jobs.sh
+update_wpm_jobs_file() {
     WPM_JOBS_FILE="$BASE_DIR/wpm_bash/wpm_jobs.sh"
 
     # Ensure the wpm_jobs.sh file exists
@@ -160,10 +160,14 @@ update_wpm_jobs_paths() {
         exit 1
     fi
 
-    # Update paths in wpm_jobs.sh
+    # Detect the control panel
+    cp=$(detect_control_panel)
+
+    # Update paths and panel in wpm_jobs.sh
     sed -i "s|^JOBS_FILE=.*|JOBS_FILE=\"$BASE_DIR/wp_monitor/jobs\"|" "$WPM_JOBS_FILE"
     sed -i "s|^JOBS_EXECUTED_FILE=.*|JOBS_EXECUTED_FILE=\"$BASE_DIR/jobs_executed\"|" "$WPM_JOBS_FILE"
     sed -i "s|^LOCK_FILE=.*|LOCK_FILE=\"$BASE_DIR/wpm_data/tmp/wp_monitor.lock\"|" "$WPM_JOBS_FILE"
+    sed -i "s|^PANEL=.*|PANEL=\"$cp\"|" "$WPM_JOBS_FILE"
 }
 
 # 1. Detect control panel
@@ -220,9 +224,9 @@ else
     fi
 fi
 
-echo "Permissions to 'jobs' file will be applied "
+echo "Permissions to 'jobs' file will be applied $user_group"
 if [ "$check" = false ]; then
-    chown -R "$user_group" "$BASE_DIR/wpm_data"
+    chown "$user_group" "$BASE_DIR/jobs"
 fi
 
 echo "Permissions will be applied $user_group a $BASE_DIR/wpm_data"
@@ -233,7 +237,7 @@ fi
 # Modify BASE_DIR in wpm_bash/wpm_jobs.sh
 echo "BASE_DIR updated in wpm_bash/wpm_jobs.sh"
 if [ "$check" = false ]; then
-    update_wpm_jobs_paths
+    update_wpm_jobs_file
 fi
 
 # Modify USER_GROUP in CRON scripts
