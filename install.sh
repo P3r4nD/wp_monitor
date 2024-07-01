@@ -167,6 +167,7 @@ update_wpm_jobs_file() {
     sed -i "s|^JOBS_FILE=.*|JOBS_FILE=\"$BASE_DIR/wp_monitor/jobs\"|" "$WPM_JOBS_FILE"
     sed -i "s|^JOBS_EXECUTED_FILE=.*|JOBS_EXECUTED_FILE=\"$BASE_DIR/jobs_executed\"|" "$WPM_JOBS_FILE"
     sed -i "s|^LOCK_FILE=.*|LOCK_FILE=\"$BASE_DIR/wpm_data/tmp/wp_monitor.lock\"|" "$WPM_JOBS_FILE"
+    sed -i "s|^LOG_FILE=.*|LOG_FILE=\"$BASE_DIR/wpm_data/logs/jobs.log\"|" "$WPM_JOBS_FILE"
     sed -i "s|^PANEL=.*|PANEL=\"$cp\"|" "$WPM_JOBS_FILE"
 }
 
