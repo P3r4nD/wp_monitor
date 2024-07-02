@@ -3,35 +3,30 @@
 BASE_DIR=$(dirname "$(realpath "$0")")
 PATH_DATA="$BASE_DIR/wpm_data/"
 
-echo "WP Monior base dir: $BASE_DIR"
+#Colors
+greenColor="\e[0;32m\033[1m"
+endColor="\033[0m\e[0m"
+redColor="\e[0;31m\033[1m"
+yellowColor="\e[0;33m\033[1m"
+grayColor="\e[0;37m\033[1m"
 
 # Check that everything is configured correctly before proceed
 check=true
 
-# Parse no-check args
-for arg in "$@"; do
-    if [ "$arg" == "no-check" ]; then
-        check=false
-    fi
-done
-
 detect_control_panel() {
     for dir in "/usr/local/cpanel" "/var/cpanel" "/etc/cpanel"; do
         if [ -d "$dir" ]; then
-            echo "cPanel detected"
             return 1
         fi
     done
 
     for dir in "/usr/local/psa" "/opt/psa" "/etc/psa"; do
         if [ -d "$dir" ];then
-            echo "Plesk detected"
             return 2
         fi
     done
 
-    echo "Installation not allowed"
-    exit 1
+    return 3
 }
 
 check_wp_toolkit() {
@@ -40,16 +35,15 @@ check_wp_toolkit() {
 
     if [ "$control_panel" -eq 1 ]; then
         if command -v /usr/local/cpanel/bin/wp-toolkit &> /dev/null; then
-            echo "WP Toolkit is installed in cPanel."
+            echo -e "${greyColor}\tWP Toolkit:${endColor} ${greenColor}Installed in cPanel.${endColor}"
         else
-            echo "WP Toolkit is not installed in cPanel. Installation not permitted."
-            exit 1
+            echo -e "${greyColor}\tWP Toolkit:${endColor} ${redColor}Not installed in cPanel. Installation not permitted.${endColor}"
         fi
     elif [ "$control_panel" -eq 2 ]; then
         if plesk bin extension --list | grep -q "wp-toolkit"; then
-            echo "WP Toolkit is installed in Plesk."
+            echo -e "${greyColor}\tWP Toolkit:${endColor} ${greenColor}Installed in Plesk.${endColor}"
         else
-            echo "WP Toolkit is not installed in Plesk. Installation not allowed."
+            echo -e "${greyColor}\tWP Toolkit:${endColor} ${redColor}Not installed in Plesk. Installation not permitted.${endColor}"
             exit 1
         fi
     fi
@@ -78,9 +72,9 @@ find_document_root() {
             fi
         fi
     elif [ "$control_panel" -eq 2 ]; then
-        document_root=$(plesk bin site --info $domain | grep "WWW-Root" | awk '{print $2}')
+        document_root=$(plesk bin site --info $domain 2>/dev/null | grep "WWW-Root" | awk '{print $2}')
         if [ -z "$document_root" ];then
-            document_root=$(plesk bin subdomain --info $domain | grep "WWW-Root" | awk '{print $2}')
+            document_root=$(plesk bin subdomain --info $domain 2>/dev/null | grep "WWW-Root" | awk '{print $2}')
         fi
     fi
 
@@ -96,16 +90,16 @@ install_wp_monitor() {
     local install_in_root=$2
 
     if [ "$install_in_root" = true ]; then
-        echo "Copying files to $document_root/"
+        echo -e "\t${greyColor}Copying files to:${endColor} ${greenColor}$document_root/${endColor}"
         if [ "$check" = false ]; then
             cp -r "$BASE_DIR/wpm_www/"* "$document_root/"
         fi
     else
-        echo "Creating directory $document_root/wp_monitor"
+        echo -e "\t${greyColor}Creating directory:${endColor} ${greenColor}$document_root/wp_monitor${endColor}"
         if [ "$check" = false ]; then
             mkdir -p "$document_root/wp_monitor"
         fi
-        echo "Copying files to $document_root/wp_monitor/"
+        echo -e "\t${greyColor}Copying files to:${endColor} ${greenColor}$document_root/wp_monitor/${endColor}"
         if [ "$check" = false ]; then
             cp -r "$BASE_DIR/wpm_www/"* "$document_root/wp_monitor/"
         fi
@@ -135,9 +129,9 @@ install_service() {
                 cp "$source_service" "$service_path"
             fi
         fi
-        echo "Service installed from $source_service to $service_path"
+        echo -e "\t${greyColor}Service installed from${endColor} ${greenColor}$source_service ${endColor} to ${endColor} ${greenColor}$service_path${endColor}"
     else
-        echo "Service file not found at $source_service"
+        echo -e "\t${redColor}Service file not found at $source_service${endColor}"
         exit 1
     fi
 }
@@ -147,7 +141,7 @@ start_service() {
         systemctl start wp_monitor_jobs.service
         systemctl enable wp_monitor_jobs.service
     fi
-    echo "Service started and enabled"
+    echo -e "\t${greyColor}Service: ${endColor} ${greenColor}started and enabled${endColor}"
 }
 
 # Update paths and panel in wpm_jobs.sh
@@ -171,27 +165,52 @@ update_wpm_jobs_file() {
     sed -i "s|^PANEL=.*|PANEL=\"$cp\"|" "$WPM_JOBS_FILE"
 }
 
+# Parse no-check args
+for arg in "$@"; do
+    if [ "$arg" == "no-check" ]; then
+        check=false
+        echo -e "${yellowColor}\n\nInstalling WP Monitor...${endColor}"
+    fi
+done
+
+if [ "$check" = true ]; then
+    echo -e "${yellowColor}\n\nChecking installation of WP Monitor.${endColor}"
+fi
+
+echo -e "${greyColor}\tWP Monior base dir:${endColor} ${greenColor}$BASE_DIR ${endColor}"
+
 # 1. Detect control panel
 detect_control_panel
 control_panel=$?
 
-echo "Control Panel: $control_panel (1=cPanel, 2=Plesk)"
+if [ $control_panel -eq 1 ]; then
+    echo -e "${greyColor}\tControl Panel:${endColor} ${greenColor}cPanel Detected${endColor}"
+fi
+
+if [ $control_panel -eq 2 ]; then
+    echo -e "${greyColor}\tControl Panel:${endColor} ${greenColor}Plesk Detected${endColor}"
+fi
+
+if [ $control_panel -eq 3 ]; then
+    echo -e "Installation not allowed"
+    exit 1
+fi
+
 
 # Check if WP Toolkit is installed
 check_wp_toolkit $control_panel
 
 # 2. Ask for domain and validate
 while true; do
-    echo -n "What domain do you want to install the interface on?
-? "
+    echo -n -e "\n${yellowColor}What domain do you want to install the interface on? ${endColor}"
     read domain
     if validate_domain $domain; then
         document_root=$(find_document_root "$domain" $control_panel)
         if [ -n "$document_root" ];then
-            echo "Domain found in $document_root"
+            echo -e "\t${greyColor}Domain:${endColor} ${greenColor}found in $document_root${endColor}"
             break
         else
-            echo "The root directory of the domain was not found. Please re-enter the domain."
+            echo -e "\t${greyColor}Domain: ${endColor} ${redColor}The root directory of the domain was not found. Please re-enter the domain.${endColor}"
         fi
     else
         echo "Invalid domain. Please re-enter the domain."
@@ -199,7 +218,7 @@ while true; do
 done
 
 # 3. Copy wpm_www content
-echo -n "Do you want to install wp_monitor at the root of the domain? (Y/N):"
+echo -n -e "\n${yellowColor}Do you want to install wp_monitor at the root of the domain? (Y/N): ${endColor}"
 read install_in_root
 if [[ "$install_in_root" == "Y" || "$install_in_root" == "y" ]];then
     install_wp_monitor "$document_root" true
@@ -207,36 +226,39 @@ else
     install_wp_monitor "$document_root" false
 fi
 
+echo -e "\n${yellowColor}Checking permissions: Setting [user:group] for www${endColor}"
 # 3.1 Get user:group and apply permissions
-echo "Getting user:group for www"
+
 user_group=$(stat -c "%U:%G" "$document_root")
-echo "user:group: $user_group"
+echo -e "\t${greyColor}user:group: ${endColor} ${greenColor}$user_group${endColor}"
 
 # Apply permissions conditionally based on installation directory
 if [[ "$install_in_root" == "Y" || "$install_in_root" == "y" ]]; then
-    echo "Permissions will be applied $user_group a $document_root"
+    echo -e "\t${greyColor}Permissions will be applied: ${endColor} ${greenColor} $user_group ${endColor} ${greyColor} to ${endColor} ${greenColor} $document_root${endColor}"
     if [ "$check" = false ]; then
         chown -R "$user_group" "$document_root"
     fi
 else
-    echo "Permissions will be applied $user_group a $document_root/wp_monitor"
+    echo -e "\t${greyColor}Permissions will be applied: ${endColor} ${greenColor} $user_group ${endColor} ${greyColor} to ${endColor} ${greenColor} $document_root/wp_monitor${endColor}"
     if [ "$check" = false ]; then
         chown -R "$user_group" "$document_root/wp_monitor"
     fi
 fi
 
-echo "Permissions to 'jobs' file will be applied $user_group"
+echo -e "\t${greyColor}Permissions to 'jobs' file will be applied: ${endColor} ${greenColor} $user_group${endColor}"
 if [ "$check" = false ]; then
     chown "$user_group" "$BASE_DIR/jobs"
 fi
 
-echo "Permissions will be applied $user_group a $BASE_DIR/wpm_data"
+echo -e "\t${greyColor}Permissions will be applied: ${endColor} ${greenColor} $user_group ${endColor} ${greyColor} a ${endColor} ${greenColor} $BASE_DIR/wpm_data${endColor}"
 if [ "$check" = false ]; then
     chown -R "$user_group" "$BASE_DIR/wpm_data"
 fi
 
+echo -e "\n${yellowColor}Updating CRON and JOBS files with new data: ${endColor}"
+
 # Modify BASE_DIR in wpm_bash/wpm_jobs.sh
-echo "BASE_DIR updated in wpm_bash/wpm_jobs.sh"
+echo -e "\t${greyColor}[BASE_DIR] updated in: ${endColor} ${greenColor} wpm_bash/wpm_jobs.sh${endColor}"
 if [ "$check" = false ]; then
     update_wpm_jobs_file
 fi
@@ -248,14 +270,14 @@ elif [ $control_panel -eq 2 ]; then
     cron_file="$BASE_DIR/wpm_bash/plesk/wpm_cron_plesk.sh"
 fi
 
-echo "Modify USER_GROUP=$user_group in file $cron_file (CRON)"
+echo -e "\t${greyColor}Modify USER_GROUP=${endColor} ${greenColor}$user_group ${endColor} ${greyColor}in file ${endColor} ${greenColor}$cron_file ${endColor} ${greyColor}(CRON)${endColor}"
 
 if [ "$check" = false ]; then
     sed -i "s/USER_GROUP=\"false\"/USER_GROUP=\"$user_group\"/" $cron_file
 fi
 
 
-echo "Modify PATH_DATA=$PATH_DATA in file $cron_file (CRON)"
+echo -e "\t${greyColor}Modify PATH_DATA=${endColor} ${greenColor}$PATH_DATA ${endColor} ${greyColor}in file ${endColor} ${greenColor}$cron_file ${endColor} ${greyColor}(CRON)${endColor}"
 if [ "$check" = false ]; then
     if [ "$BASE_DIR" != "/opt/wp_monitor" ]; then
         sed -i "s|PATH_DATA=\"/opt/wp_monitor/wpm_data/\"|PATH_DATA=\"$PATH_DATA\"|" "$cron_file"
@@ -263,11 +285,11 @@ if [ "$check" = false ]; then
 fi
 
 # 4. Ask for CRON creation
-echo -n "You want to create the CRON task automatically? (Y/N): "
+echo -n -e "\n${yellowColor}You want to create the CRON task automatically? (Y/N): ${endColor}"
 read create_cron
 
 if [[ "$create_cron" == "Y" || "$create_cron" == "y" ]]; then
-    echo -n "Every how many minutes should the CRON be executed?: "
+    echo -n -e "\n${yellowColor}Every how many minutes should the CRON be executed?: ${endColor}"
     read interval
 
     # 4.2 Determine CRON to execute
@@ -280,29 +302,25 @@ if [[ "$create_cron" == "Y" || "$create_cron" == "y" ]]; then
     # 4.3 Make cron_file executable
     chmod +x "$cron_file"
 
-    # 4.2 Modify USER_GROUP in the corresponding script and create CRON
-    echo "The USER_GROUP variable of the file is set $cronfile to USER_GROUP=$user_group"
     if [ "$check" = false ]; then
-        sed -i "s/USER_GROUP=\"false\"/USER_GROUP=\"$user_group\"/" "$cron_file"
         create_cron_job "$interval" "$cron_file"
     fi
 
-
-    echo "CRON job created to run ever $interval minutos ('*/$interval * * * * $script')"
+    echo -e "\t${greyColor}CRON job created to run every ${endColor} ${greenColor}$interval${endColor} ${greyColor} minuts ('*/$interval * * * * $script')${endColor}"
 fi
 
 # 5. Ask to install systemd service
-echo -n "You want to install the service 'jobs'? (Y/N): "
+echo -n -e "\n${yellowColor}You want to install the service 'jobs'? (Y/N): ${endColor}"
 read install_service
 
 if [[ "$install_service" == "Y" || "$install_service" == "y" ]]; then
     install_service
     # 5.1 Ask to start the service
-    echo -n "You want to start the service now? (Y/N): "
+    echo -n -e "\n${yellowColor}You want to start the service now? (Y/N):  ${endColor}"
     read start_service_now
     if [[ "$start_service_now" == "Y" || "$start_service_now" == "y" ]];then
         start_service
     fi
 fi
 
-echo "WP Monitor has been installed successfully"
+echo -e "\n\n${greenColor}--------------- WP Monitor has been installed successfully ---------------${endColor}"
