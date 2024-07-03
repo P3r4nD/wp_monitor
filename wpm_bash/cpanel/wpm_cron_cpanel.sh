@@ -5,6 +5,7 @@ BASE_USERS_DIR="/home"
 ERROR_LOG_FILE="error_log"
 USER_GROUP="false"
 PATH_DATA="/opt/wp_monitor/wpm_data/"
+ID_CODE_MAP_FILE="${PATH_DATA}wp_id_code_map.json"
 PATH_LOGS="logs/"
 WPM_INFO_JSON="wpi.json"
 RECIPIENT="example @ gmail . com"
@@ -14,18 +15,34 @@ BODY="WP_Monitor Summary"
 # Array to save unique domains
 declare -a unique_domains=()
 
+# Function to generate a unique wp code (ID)
+generate_unique_wp_id() {
+    echo $(openssl rand -hex 10)
+}
+
 # Get the list of WordPress installations and save to a JSON file
 $CPANEL_CMD --list -format json > "$PATH_DATA$WPM_INFO_JSON"
 
 # Iterate over each WordPress installation to obtain additional information
 $CPANEL_CMD --list | while read -r line; do
-    #  Extract the column ID
+    # Extract the column ID
     id=$(echo "$line" | awk '{print $1}')
 
     # Checks if the line contains a valid ID
     if [[ "$id" =~ ^[0-9]+$ ]]; then
+        # Check if the ID already exists in the map file
+        code=$(jq -r --arg id "$id" '.[$id]' "$ID_CODE_MAP_FILE")
+
+        if [[ "$code" == "null" || -z "$code" ]]; then
+            # Generate a new unique code ID
+            code=$(generate_unique_wp_id)
+
+            # Update the ID_CODE_MAP_FILE with the new code
+            jq --arg id "$id" --arg code "$code" '.[$id] = $code' "$ID_CODE_MAP_FILE" > "${ID_CODE_MAP_FILE}.tmp" && mv "${ID_CODE_MAP_FILE}.tmp" "$ID_CODE_MAP_FILE"
+        fi
+
         # Run the command to get additional information about the Wordpress ID
-        $CPANEL_CMD --info -format json -instance-id "$id" > "$PATH_DATA$id.json"
+        $CPANEL_CMD --info -format json -instance-id "$id" > "${PATH_DATA}${id}-${code}.json"
     fi
 done
 

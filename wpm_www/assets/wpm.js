@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.getElementById('wpExtModal').dataset.currentRow = row.rowIndex;
                     var cell = row.getElementsByTagName("td")[0];
                     var cell_title = row.getElementsByTagName("td")[1];
-                    var id = cell.innerHTML;
+                    var id = row.getAttribute("data-code").trim();
                     const fetchOptions = {
                         method: "GET"
                     };

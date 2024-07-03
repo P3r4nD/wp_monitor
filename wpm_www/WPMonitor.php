@@ -393,16 +393,43 @@ class WPMonitor {
         return $outdated;
     }
     
+    public function validateHexCode($code){
+        
+        // Check if the output is a 10-character hexadecimal value
+        if (preg_match('/^[0-9a-fA-F]{20}$/', trim($code))) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    private function readCodeFromFilename($file){
+        
+        $filename = basename($file, ".json");
+        // Extract the ID part of the filename (the part before the hyphen)
+        $code = explode('-', $filename)[1];
+        
+        return $code;
+    }
+    
     public function readWPData() {
         
         $wp_files = glob($this->appPath."/wpm_data/*.json");
-        
+
         if($wp_files) {
+            
             $files_with_numbers = [];
+            
             foreach ($wp_files as $file) {
+                
                 $filename = basename($file, ".json");
-                if (ctype_digit($filename)) {
-                    $files_with_numbers[(int)$filename] = $file;
+
+                // Extract the ID part of the filename (the part before the hyphen)
+                $id = explode('-', $filename)[0];
+
+                // Check if the extracted ID is numeric
+                if (ctype_digit($id)) {
+                    $files_with_numbers[(int)$id] = $file;
                 }
             }
 
@@ -411,7 +438,7 @@ class WPMonitor {
 
             // Get the array of sorted files
             $sorted_files = array_values($files_with_numbers);
-            
+
             return $sorted_files;
         }
         
@@ -420,32 +447,49 @@ class WPMonitor {
         
     }
     
+    public function readWPJsonData($code) {
+        $wp_data_dir = $this->appPath."/wpm_data/";
+        $files = glob($wp_data_dir . '*-' . $code . '.json');
+        if (count($files) > 0) {
+            $json_content = file_get_contents($files[0]);
+            return json_decode($json_content, true);
+        }
+        return null;
+    }
+    
     public function printTableWP() {
 
         $wp_installs = $this->readWPData();
         
         if($wp_installs){
             foreach ($wp_installs as $wp_file) {
+                $wp_status = "No jobs";
+                $wp_stats_class = "";
                 $json = file_get_contents($wp_file);
                 $json_data = json_decode($json, true);
                 $row_class = ($json_data['outdatedWp'] == True) ? 'table-danger' : '';
                 $plugins_outdated = $this->checkForOutdatedPlugins($json_data['plugins']);
                 $plugins_class = ($plugins_outdated == True) ? 'cell-danger' : '';
                 $pending_jobs = $this->searchInJobs($json_data['id']);
+                if($pending_jobs){
+                    $wp_status = "Running jobs";
+                    $wp_stats_class = " text-bg-warning disallowed";
+                }
                 $pending_jobs_class = ($pending_jobs == True) ? 'pending-jobs' : '';
-                echo "<tr class='" . $row_class . " " . $pending_jobs_class ."'>";
-                echo "<td class='table-cell'>" . $json_data['id'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['siteUrl'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['name'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['unsupportedPhp'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['unsupportedWp'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['broken'] . "</td>";
-                echo "<td class='table-cell'>" . $json_data['infected'] . "</td>";
-                echo "<td class='table-cell-center'>" . $json_data['outdatedPhp'] . "</td>";
-                echo "<td class='table-cell-center'>" . $json_data['alive'] . "</td>";
-                echo "<td class='table-cell-center'>" . $json_data['stateText'] . "</td>";
-                echo "<td class='table-cell-center " . $plugins_class . "'>" . count($json_data['plugins']) . "</td>";
-                echo "<td class='table-cell-center'>" . $json_data['version'] . "</td>";
+                
+                echo "<tr data-code='" . htmlspecialchars($this->readCodeFromFilename($wp_file)) . "' class='" . $row_class . " " . $pending_jobs_class ."'>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['siteUrl'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['name'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedPhp'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedWp'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['broken'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['infected'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['outdatedPhp'] . "</td>";
+                echo "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['alive'] . "</td>";
+                echo "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['stateText'] . "</td>";
+                echo "<td class='table-cell-center " . $plugins_class . " text-nowrap".$wp_stats_class."'>" . count($json_data['plugins']) . "</td>";
+                echo "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['version'] . "</td>";
+                echo "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $wp_status . "</td>";
                 echo "</tr>";
             }
         }else{
@@ -463,7 +507,7 @@ class WPMonitor {
             }
         }
     }
-
+    
     public function readWPLogs($domain_url, $time_frame=False) {
         
         $domain = $this->getDomain($domain_url);
