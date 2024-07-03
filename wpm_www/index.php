@@ -164,6 +164,9 @@ if (!isset($_SESSION['first_visit_time'])) {
             .help-text {
                 font-size:13px;
             }
+            .disallowed {
+                cursor: not-allowed;
+            }
         </style>
     </head>
     <body>
@@ -347,7 +350,6 @@ if (!isset($_SESSION['first_visit_time'])) {
                     <table id="table-wp" class="table table-sm table-hover">
                         <thead>
                             <tr>
-                                <th class="table-header">ID</th>
                                 <th class="table-header">Site</th>
                                 <th class="table-header">Name</th>
                                 <th class="table-header">Unsuported PHP</th>
@@ -359,6 +361,7 @@ if (!isset($_SESSION['first_visit_time'])) {
                                 <th class="table-header">State</th>
                                 <th class="table-header">Plugins</th>
                                 <th class="table-header">Version</th>
+                                <th class="table-header">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -377,7 +380,7 @@ if (!isset($_SESSION['first_visit_time'])) {
                 $firstVisitTime = $_SESSION['first_visit_time'];
                 $lastReloadTime = isset($_SESSION['last_reload_time']) ? $_SESSION['last_reload_time'] : "Pendiente";
                 ?>
-                <p class='text-center text-body-secondary help-text'><svg class="bd-placeholder-img flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false" width="14" height="14"><title>Placeholder</title><rect width="100%" height="100%" fill="#f8d7da"></rect><text x="50%" y="50%" fill="#f8d7da" dy=".3em">32x32</text></svg>Wordpress Outdated <svg class="bd-placeholder-img flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false" width="14" height="14"><title>Placeholder</title><rect width="100%" height="100%" fill="#b02a37" style="margin-left:20px;"></rect><text x="50%" y="50%" fill="#b02a37" dy=".3em">32x32</text></svg>Outdated or insecure Plugins or Themes</p>
+                <p class='text-center text-body-secondary help-text'><svg class="bd-placeholder-img flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false" width="14" height="14"><title>Placeholder</title><rect width="100%" height="100%" fill="#f8d7da"></rect><text x="50%" y="50%" fill="#f8d7da" dy=".3em">32x32</text></svg>Wordpress Outdated <svg class="bd-placeholder-img flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false" width="14" height="14"><title>Placeholder</title><rect width="100%" height="100%" fill="#b02a37" style="margin-left:20px;"></rect><text x="50%" y="50%" fill="#b02a37" dy=".3em">32x32</text></svg>Outdated or insecure Plugins or Themes <svg class="bd-placeholder-img flex-shrink-0 me-2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false" width="14" height="14"><title>Placeholder</title><rect width="100%" height="100%" fill="#ffc107" style="margin-left:20px;"></rect><text x="50%" y="50%" fill="#ffc107" dy=".3em">32x32</text></svg>Running Jobs</p>
                 <p class="text-center help-text"><strong>Conectado</strong>: <?= $firstVisitTime; ?> <strong>Actualizado</strong>: <span id="last_updated">Undefined</p>
 
             </footer>

@@ -4,10 +4,15 @@ require_once 'WPMonitor.php';
 
 $WPMonitor = new WPMonitor();
 
-// Función para leer trabajos existentes
-
-
-
+function get_json_by_code($code) {
+    $directory = '/opt/wp_monitor/wpm_data/';
+    $files = glob($directory . '*-' . $code . '.json');
+    if (count($files) > 0) {
+        $json_content = file_get_contents($files[0]);
+        return json_decode($json_content, true);
+    }
+    return null;
+}
 
 // Verificar si la solicitud es un POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,22 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($data['wp_action'] === "do_jobs"){
-            //{"wp_action":"do_jobs",
-            //"wp_id":"4",
-            //"wp_update":true,
-            //"plugins":[{"name":"akismet","action":"update"},{"name":"all-in-one-seo-pack","action":"update"}],
-            //"wp_theme":"twentytwenty"}
-            // Validar wp_id
+
             if (!isset($data['wp_id']) || !$WPMonitor->validateID($data['wp_id'])) {
                 $errors[] = 'Invalid or missing wp_id.';
             }
 
-            // Validar wp_update
+            // Validate wp_update
             if (!isset($data['wp_update']) || !$WPMonitor->validateBool($data['wp_update'])) {
                 $errors[] = 'Invalid or missing wp_update.';
             }
 
-            // Validar plugins
+            // Validate plugins
             if (!isset($data['plugins']) || !is_array($data['plugins'])) {
                 $errors[] = 'Invalid or missing plugins.';
             } else {
@@ -114,20 +114,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Validar wp_theme
+            // Validate wp_theme
             if (isset($data['wp_theme']) && $data['wp_theme']!= false && !$WPMonitor->validateName($data['wp_theme'])) {
                 $errors[] = 'Invalid wp_theme.';
             }
 
-            // Verificar si hay errores
+            // Check for errors
             if (!empty($errors)) {
-                // Enviar respuesta con errores
+                // Send response with errors
                 http_response_code(400); // Bad Request
                 echo json_encode(['errors' => $errors]);
                 exit;
             }
 
-            // Formatear los trabajos
+            // Format jobs
             $jobs = [];
             if ($data['wp_update']) {
                 $jobs[] = "update_wp " . $data['wp_id'];
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $jobs[] = "update_template " . $data['wp_id'] . " " . $data['wp_theme'];
             }
             $result_jobs = [];
-            // Agregar cada trabajo
+            // Add each job
             foreach ($jobs as $job) {
                 $jobObj = new stdClass();
                 $jobObj->job = $job;
@@ -164,25 +164,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     
     if (isset($_GET['id'])) {
 
+        $code = $_GET['id'];
+        
+        if($WPMonitor->validateHexCode($code)) {
+        
+            $wp_object = $WPMonitor->readWPJsonData($code);
 
-        $id = $_GET['id'];
+            if ($wp_object) {
 
-        $file = $WPMonitor->getDataPath() . "/" . $id . ".json";
+                $json_data = $wp_object;
+                $json_data['logs'] = $WPMonitor->readWPLogs($json_data['siteUrl']);
 
-        if (file_exists($file)) {
+                if (empty($json_data['logs'])) {
+                    $json_data['logs_msg'] = $WPMonitor->getDefaultMsgTime();
+                }
 
-            $json = file_get_contents($file);
-            $json_data = json_decode($json, true);
-            $json_data['logs'] = $WPMonitor->readWPLogs($json_data['siteUrl']);
-
-            if (empty($json_data['logs'])) {
-                $json_data['logs_msg'] = $WPMonitor->getDefaultMsgTime();
+                echo json_encode($json_data);
+                exit;
             }
 
-            echo json_encode($json_data);
+            echo json_encode(array("error"=>"true"));
         }
-
-        return False;
+        
+        echo json_encode(array("error"=>"true"));
     }
 
     if (isset($_GET['update']) && $_GET['update'] === "true") {
