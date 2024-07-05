@@ -38,6 +38,22 @@ msgstr "El archivo de trabajos ejecutados '%s' no existe. Asegúrese de que est�
 msgid "To activate sending messages to Telegram you must configure [telegram_token] and [telegram_chat_id] in your [config.json] file."
 msgstr "Para activar el envío de mensajes a Telegram debes configurar [telegram_token] y [telegram_chat_id] en tu archivo [config.json]."
 
+#: WP_Monitor.php:554
+msgid "Updated data"
+msgstr "Datos actualizados"
+
+#: WP_Monitor.php:555
+msgid "Just now"
+msgstr "Justo ahora"
+
+#: WP_Monitor.php:556
+msgid "No pending jobs."
+msgstr "Sin trabajos pendientes"
+
+#: WP_Monitor.php:560
+msgid "Pending jobs. If message persists, jobs are not running!"
+msgstr "Trabajos pendientes. Si el mensaje persiste, los trabajos no se están ejecutando."
+
 #: WP_Monitor.php:722
 msgid "Telegram API error: %s"
 msgstr "Error de la API de Telegram: %s"
@@ -46,7 +62,7 @@ msgstr "Error de la API de Telegram: %s"
 msgid "Error sending message using [file_get_contents]."
 msgstr "Error al enviar el mensaje usando [file_get_contents]."
 
-
-#: index.php
+#: index.php:557
 msgid "This Wordpress installation is running jobs, wait for it to finish to add new jobs."
 msgstr "Esta instalación Wordpress está ejecutando jobs, espera a que termine para añadir nuevos jobs."
+

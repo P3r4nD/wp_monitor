@@ -1,5 +1,5 @@
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
 
     function hasClass(element, cls) {
         return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
@@ -18,39 +18,70 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    function btnSubmitChange(status){
+    function showToastedMessage(imgSrc, title, time, message) {
+        
+        const toastBox = document.getElementById('liveToastedMessage');
+
+        if (toastBox) {
+            // Clone the template
+            const newToast = toastBox.cloneNode(true);
+
+            // Update the content
+            newToast.querySelector('img').src = imgSrc;
+            newToast.querySelector('strong').textContent = title;
+            newToast.querySelector('small').textContent = time;
+            newToast.querySelector('.toast-body').textContent = message;
+
+            // Append the new toast to the container
+            const toastContainer = document.querySelector('.toast-container');
+            toastContainer.appendChild(newToast);
+
+            // Initialize and show the toast using Bootstrap's Toast API
+            const bsToast = new bootstrap.Toast(newToast);
+            bsToast.show();
+        } else {
+            console.error('Toast template not found!');
+        }
+    }
+
+    function btnSubmitChange(status) {
 
         var btn_submit = document.getElementById("btn-submit");
         var btn_searching = document.getElementById("btn-searching");
 
-        if(status=="searching"){
+        if (status == "searching") {
             btn_submit.classList.add("d-none");
             btn_searching.classList.remove("d-none");
-        }else{
+        } else {
             btn_submit.classList.remove("d-none");
             btn_searching.classList.add("d-none");
         }
     }
+
     function clearWordpressContainer() {
 
         var tlb = document.querySelector('#wp-container');
         tlb.innerHTML = "";
     }
+
     function clearPluginsTable() {
 
         var tlb = document.querySelector('#table-plugins tbody');
         tlb.innerHTML = "";
     }
+
     function clearThemesTable() {
 
         var tlb = document.querySelector('#table-themes tbody');
         tlb.innerHTML = "";
     }
+
     function clearLogsTable() {
 
         var tlb = document.querySelector('#table-logs tbody');
         tlb.innerHTML = "";
     }
+
     function hideLogMessage() {
 
         var alertBox = document.getElementById("msg-logs");
@@ -337,26 +368,26 @@ document.addEventListener("DOMContentLoaded", function() {
                 };
             };
 
-            if ( currentRow.classList.contains('pending-jobs') ) {
-                currentRow.onclick = function() {
+            if (currentRow.classList.contains('pending-jobs')) {
+                currentRow.onclick = function () {
                     // Mostrar segundo modal con el warning
                     const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
                     warningModal.show();
                 };
-            }else{
+            } else {
                 currentRow.onclick = createClickHandler(currentRow);
             }
         }
     }
 
     /**
-    * Helper function for POSTing data as JSON with fetch.
-    *
-    * @param {Object} options
-    * @param {string} options.url - URL to POST data to
-    * @param {FormData} options.formData - `FormData` instance
-    * @return {Object} - Response body from URL that was POSTed to
-    */
+     * Helper function for POSTing data as JSON with fetch.
+     *
+     * @param {Object} options
+     * @param {string} options.url - URL to POST data to
+     * @param {FormData} options.formData - `FormData` instance
+     * @return {Object} - Response body from URL that was POSTed to
+     */
     async function postFormDataAsJson( { url, formData }) {
         const plainFormData = Object.fromEntries(formData.entries());
         const formDataJsonString = JSON.stringify(plainFormData);
@@ -381,12 +412,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     /**
-    * Event handler for a form submit event.
-    *
-    * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event
-    *
-    * @param {SubmitEvent} event
-    */
+     * Event handler for a form submit event.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event
+     *
+     * @param {SubmitEvent} event
+     */
     async function handleFormSubmit(event) {
         event.preventDefault();
 
@@ -433,7 +464,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const themeTable = document.getElementById('table-themes');
     const updateWpCheckbox = document.getElementById('updateWpCheckbox');
 
-    saveButton.addEventListener('click', function() {
+    saveButton.addEventListener('click', function () {
         const jobs = {
             wp_action: "do_jobs",
             wp_id: document.getElementById('wp-install-id').value,
@@ -479,43 +510,43 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             body: JSON.stringify(jobs)
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Success:', data);
-            if (data.success) {
-                // Cerrar el modal y restablecer el estado inicial
-                const modalElement = document.getElementById('wpExtModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                modalInstance.hide();
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                    if (data.success) {
+                        // Cerrar el modal y restablecer el estado inicial
+                        const modalElement = document.getElementById('wpExtModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        modalInstance.hide();
 
-                // Restablecer el primer tab como activo
-                const firstTabButton = document.querySelector('#nav-tab button:first-child');
-                const tabInstance = new bootstrap.Tab(firstTabButton);
-                tabInstance.show();
+                        // Restablecer el primer tab como activo
+                        const firstTabButton = document.querySelector('#nav-tab button:first-child');
+                        const tabInstance = new bootstrap.Tab(firstTabButton);
+                        tabInstance.show();
 
-                // Obtener el índice del row y actualizar su evento onclick
-                const rowIndex = modalElement.dataset.currentRow;
-                const table = document.getElementById("table-wp");
-                if (rowIndex) {
-                    const row = table.rows[rowIndex];
-                    row.onclick = function() {
-                        // Mostrar segundo modal con el warning
-                        const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
-                        warningModal.show();
-                    };
-                }
-            } else {
-                // Manejar el error
-                console.error('Error:', data.message);
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-        });
+                        // Obtener el índice del row y actualizar su evento onclick
+                        const rowIndex = modalElement.dataset.currentRow;
+                        const table = document.getElementById("table-wp");
+                        if (rowIndex) {
+                            const row = table.rows[rowIndex];
+                            row.onclick = function () {
+                                // Mostrar segundo modal con el warning
+                                const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
+                                warningModal.show();
+                            };
+                        }
+                    } else {
+                        // Manejar el error
+                        console.error('Error:', data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
     });
 
 
-    wpModalElement.addEventListener('change', function(event) {
+    wpModalElement.addEventListener('change', function (event) {
         if (event.target.matches('#updateWpCheckbox, .plugin-action-select, #table-themes input[type="checkbox"]')) {
             showSaveButton();
         }
@@ -527,7 +558,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
     // Capturar el evento de cierre del modal
-    wpModalElement.addEventListener('hidden.bs.modal', function(event) {
+    wpModalElement.addEventListener('hidden.bs.modal', function (event) {
         console.log('El modal se ha cerrado');
         clearWordpressContainer();
         clearPluginsTable();
@@ -537,21 +568,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const tableBody = document.querySelector("#table-wp tbody");
     const api_url = app_url;
     function updateTable() {
-        fetch(api_url+"?update=true")
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-                return response.text();
-            })
-            .then(html => {
-                // Reemplazar el contenido del tbody con los <tr> recibidos
-                tableBody.innerHTML = html;
-                addRowHandlers();
-            })
-            .catch(error => {
-                console.error("Hubo un problema con la solicitud fetch:", error);
-            });
+        fetch(api_url + "?update=true")
+            .then(response => response.json())
+                
+                .then(data => {
+                    // Reemplazar el contenido del tbody con los <tr> recibidos
+                    tableBody.innerHTML = data.html;
+                    showToastedMessage('path-to-image', data.title, data.timestamp, data.message);
+                    addRowHandlers();
+                })
+                .catch(error => {
+                    console.error("Hubo un problema con la solicitud fetch:", error);
+                });
     }
 
     addRowHandlers();
@@ -586,6 +614,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const formattedDate = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
         document.getElementById('last_updated').innerText = formattedDate;
     }
+    
     updateDateTime();
     setInterval(updateProgress, updateTime);
 });

@@ -82,6 +82,20 @@ class WPMonitor {
         
         $wpm_path = getenv('WPM_PATH');
         
+        // If the environment variable is not defined, try loading from an .env file
+        if (!$wpm_path) {
+            $env_file = __DIR__ . '/.env';
+            if (file_exists($env_file)) {
+                $env_content = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($env_content as $line) {
+                    if (strpos(trim($line), 'WPM_PATH=') === 0) {
+                        $wpm_path = trim(str_replace('WPM_PATH=', '', $line));
+                        break;
+                    }
+                }
+            }
+        }
+        
         if (!$wpm_path) {
             $this->initStatus = False;
             throw new Exception($this->translate("The environment variable [WPM_PATH] is not defined. Make sure you do it."));
@@ -91,7 +105,7 @@ class WPMonitor {
          * Path to application directory
          *
          */
-        $this->appPath = getenv('WPM_PATH') ?? null;
+        $this->appPath = $wpm_path ?? null;
         
         // Check if the application path is configured.
         if (empty($this->appPath) || !$this->appPath || @!file_exists($this->appPath)) {
@@ -99,7 +113,7 @@ class WPMonitor {
             throw new Exception($this->translate("The [app_path] is not set correctly. Make sure the directory you defined in the [WPM_PATH] environment variable exists."));    
         }
         
-        $configPath = getenv('WPM_PATH') . self::CONFIG_FILE;
+        $configPath = $wpm_path . self::CONFIG_FILE;
         
         if (!file_exists($configPath)) {
             $this->initStatus = False;
@@ -492,6 +506,61 @@ class WPMonitor {
                 echo "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $wp_status . "</td>";
                 echo "</tr>";
             }
+        }else{
+            return false;
+        }
+    }
+    
+    public function getTableWP() {
+
+        $wp_installs = $this->readWPData();
+        $html_table = "";
+        $jobs = [];
+        if($wp_installs){
+            foreach ($wp_installs as $wp_file) {
+                $wp_status = "No jobs";
+                $wp_stats_class = "";
+                $json = file_get_contents($wp_file);
+                $json_data = json_decode($json, true);
+                $row_class = ($json_data['outdatedWp'] == True) ? 'table-danger' : '';
+                $plugins_outdated = $this->checkForOutdatedPlugins($json_data['plugins']);
+                $plugins_class = ($plugins_outdated == True) ? 'cell-danger' : '';
+                $pending_jobs = $this->searchInJobs($json_data['id']);
+                if($pending_jobs){
+                    $wp_status = "Running jobs";
+                    $wp_stats_class = " text-bg-warning disallowed";
+                    $jobs[] = $json_data['name'];
+                }
+                $pending_jobs_class = ($pending_jobs == True) ? 'pending-jobs' : '';
+
+                $html_table .= "<tr data-code='" . htmlspecialchars($this->readCodeFromFilename($wp_file)) . "' class='" . $row_class . " " . $pending_jobs_class ."'>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['siteUrl'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['name'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedPhp'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedWp'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['broken'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['infected'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['outdatedPhp'] . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['alive'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['stateText'] . "</td>";
+                $html_table .= "<td class='table-cell-center " . $plugins_class . " text-nowrap".$wp_stats_class."'>" . count($json_data['plugins']) . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['version'] . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $wp_status . "</td>";
+                $html_table .= "</tr>";
+            }
+
+            $message = [
+                'html'  => $html_table,
+                'title' => $this->translate('Updated data'),
+                'timestamp' => $this->translate('Just now'),
+                'message'   => $this->translate('No pending jobs.')
+            ];
+
+            if(!empty($jobs)){
+                $message['message'] = $this->translate("Pending jobs. If message persists, jobs are not running!");
+            }
+
+            return $message;
         }else{
             return false;
         }

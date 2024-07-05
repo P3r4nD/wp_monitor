@@ -565,6 +565,19 @@ if (!isset($_SESSION['first_visit_time'])) {
                 </div>
             </div>
         </div>
+        <!-- Toast -->
+        <div class="toast-container position-fixed bottom-3 end-0 p-3">
+            <div id="liveToastedMessage" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto"></strong>
+                    <small></small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    
+                </div>
+            </div>
+        </div>
     <?php } ?>
     <script src="assets/bootstrap-5.3.3/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <?php if ($initErrors) { ?>

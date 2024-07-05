@@ -1,5 +1,7 @@
 <?php
-
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 require_once 'WPMonitor.php';
 
 $WPMonitor = new WPMonitor();
@@ -193,6 +195,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         $_SESSION['last_reload_time'] = date("Y-m-d H:i:s");
 
-        $WPMonitor->printTableWP();
+        $wps_table = $WPMonitor->getTableWP();
+        
+        $response = [
+            'html' => $wps_table,
+            'title' => "Updated data",
+            'timestamp' => "Just now",
+            'message' => 'This is your toast message',
+            'imgSrc' => 'path-to-image'
+        ];
+        
+        header('Content-Type: application/json');
+
+        echo json_encode($wps_table);
     }
 }
