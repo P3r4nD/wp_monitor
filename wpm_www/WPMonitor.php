@@ -82,6 +82,20 @@ class WPMonitor {
         
         $wpm_path = getenv('WPM_PATH');
         
+        // If the environment variable is not defined, try loading from an .env file
+        if (!$wpm_path) {
+            $env_file = __DIR__ . '/.env';
+            if (file_exists($env_file)) {
+                $env_content = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($env_content as $line) {
+                    if (strpos(trim($line), 'WPM_PATH=') === 0) {
+                        $wpm_path = trim(str_replace('WPM_PATH=', '', $line));
+                        break;
+                    }
+                }
+            }
+        }
+        
         if (!$wpm_path) {
             $this->initStatus = False;
             throw new Exception($this->translate("The environment variable [WPM_PATH] is not defined. Make sure you do it."));
@@ -91,7 +105,7 @@ class WPMonitor {
          * Path to application directory
          *
          */
-        $this->appPath = getenv('WPM_PATH') ?? null;
+        $this->appPath = $wpm_path ?? null;
         
         // Check if the application path is configured.
         if (empty($this->appPath) || !$this->appPath || @!file_exists($this->appPath)) {
@@ -99,7 +113,7 @@ class WPMonitor {
             throw new Exception($this->translate("The [app_path] is not set correctly. Make sure the directory you defined in the [WPM_PATH] environment variable exists."));    
         }
         
-        $configPath = getenv('WPM_PATH') . self::CONFIG_FILE;
+        $configPath = $wpm_path . self::CONFIG_FILE;
         
         if (!file_exists($configPath)) {
             $this->initStatus = False;
