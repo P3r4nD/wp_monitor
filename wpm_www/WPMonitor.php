@@ -510,6 +510,61 @@ class WPMonitor {
             return false;
         }
     }
+    
+    public function getTableWP() {
+
+        $wp_installs = $this->readWPData();
+        $html_table = "";
+        $jobs = [];
+        if($wp_installs){
+            foreach ($wp_installs as $wp_file) {
+                $wp_status = "No jobs";
+                $wp_stats_class = "";
+                $json = file_get_contents($wp_file);
+                $json_data = json_decode($json, true);
+                $row_class = ($json_data['outdatedWp'] == True) ? 'table-danger' : '';
+                $plugins_outdated = $this->checkForOutdatedPlugins($json_data['plugins']);
+                $plugins_class = ($plugins_outdated == True) ? 'cell-danger' : '';
+                $pending_jobs = $this->searchInJobs($json_data['id']);
+                if($pending_jobs){
+                    $wp_status = "Running jobs";
+                    $wp_stats_class = " text-bg-warning disallowed";
+                    $jobs[] = $json_data['name'];
+                }
+                $pending_jobs_class = ($pending_jobs == True) ? 'pending-jobs' : '';
+
+                $html_table .= "<tr data-code='" . htmlspecialchars($this->readCodeFromFilename($wp_file)) . "' class='" . $row_class . " " . $pending_jobs_class ."'>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['siteUrl'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['name'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedPhp'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['unsupportedWp'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['broken'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['infected'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['outdatedPhp'] . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['alive'] . "</td>";
+                $html_table .= "<td class='table-cell text-nowrap".$wp_stats_class."'>" . $json_data['stateText'] . "</td>";
+                $html_table .= "<td class='table-cell-center " . $plugins_class . " text-nowrap".$wp_stats_class."'>" . count($json_data['plugins']) . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $json_data['version'] . "</td>";
+                $html_table .= "<td class='table-cell-center text-nowrap".$wp_stats_class."'>" . $wp_status . "</td>";
+                $html_table .= "</tr>";
+            }
+
+            $message = [
+                'html'  => $html_table,
+                'title' => $this->translate('Updated data'),
+                'timestamp' => $this->translate('Just now'),
+                'message'   => $this->translate('No pending jobs.')
+            ];
+
+            if(!empty($jobs)){
+                $message['message'] = $this->translate("Pending jobs. If message persists, jobs are not running!");
+            }
+
+            return $message;
+        }else{
+            return false;
+        }
+    }
 
     public function cleanTMP($tempDir) {
 
