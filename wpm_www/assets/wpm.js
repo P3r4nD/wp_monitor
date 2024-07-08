@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showToastedMessage(imgSrc, title, time, message) {
-
+        
         const toastBox = document.getElementById('liveToastedMessage');
 
         if (toastBox) {
@@ -27,14 +27,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const newToast = toastBox.cloneNode(true);
 
             // Update the content
-            //newToast.querySelector('img').src = imgSrc;
+            newToast.querySelector('img').src = imgSrc;
             newToast.querySelector('strong').textContent = title;
             newToast.querySelector('small').textContent = time;
             newToast.querySelector('.toast-body').textContent = message;
 
             // Append the new toast to the container
             const toastContainer = document.querySelector('.toast-container');
-            toastContainer.innerHTML = "";
             toastContainer.appendChild(newToast);
 
             // Initialize and show the toast using Bootstrap's Toast API
@@ -166,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     clearLogsTable();
                     document.getElementById('wpExtModal').dataset.currentRow = row.rowIndex;
                     var cell = row.getElementsByTagName("td")[0];
-                    var cell_title = row.getElementsByTagName("td")[0];
+                    var cell_title = row.getElementsByTagName("td")[1];
                     var id = row.getAttribute("data-code").trim();
                     const fetchOptions = {
                         method: "GET"
@@ -183,10 +182,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         while (ttb.childNodes.length) {
                             ttb.removeChild(ttb.childNodes[0]);
                         }
+                        console.log(d.id, d.outdatedWp, d.version, d.update_version);
 
                         wpc.innerHTML = `${createWordpressContainer(d.outdatedWp, d.version, d.update_version)}`;
 
                         wp_id.value = d.id;
+                        console.log("ID: ", wp_id.value);
                         //Fill logs table
                         if (d.logs.length) {
                             for (const log in d.logs) {
@@ -499,6 +500,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
+        console.log(app_url);
+        console.log(jobs);
         // Enviar el objeto JSON al servidor
         fetch(app_url, {
             method: 'POST',
@@ -509,6 +512,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Success:', data);
                     if (data.success) {
                         // Cerrar el modal y restablecer el estado inicial
                         const modalElement = document.getElementById('wpExtModal');
@@ -555,6 +559,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Capturar el evento de cierre del modal
     wpModalElement.addEventListener('hidden.bs.modal', function (event) {
+        console.log('El modal se ha cerrado');
         clearWordpressContainer();
         clearPluginsTable();
         clearThemesTable();
@@ -565,7 +570,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateTable() {
         fetch(api_url + "?update=true")
             .then(response => response.json())
-
+                
                 .then(data => {
                     // Reemplazar el contenido del tbody con los <tr> recibidos
                     tableBody.innerHTML = data.html;
@@ -609,7 +614,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const formattedDate = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
         document.getElementById('last_updated').innerText = formattedDate;
     }
-
+    
     updateDateTime();
     setInterval(updateProgress, updateTime);
 });
