@@ -566,7 +566,7 @@ if (!isset($_SESSION['first_visit_time'])) {
             </div>
         </div>
         <!-- Toast -->
-        <div class="toast-container position-fixed bottom-3 end-0 p-3">
+        <div class="toast-container p-3 bottom-0 start-0">
             <div id="liveToastedMessage" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
                     <strong class="me-auto"></strong>
@@ -574,7 +574,7 @@ if (!isset($_SESSION['first_visit_time'])) {
                     <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body">
-                    
+
                 </div>
             </div>
         </div>
