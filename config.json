@@ -11,6 +11,15 @@
     "jobs_executed_file": "jobs_executed",
     "telegram_token": "",
     "telegram_chat_id": "",
-    "telegram_enabled": true,
-    "use_curl": false
+    "telegram_enabled": false,
+    "use_curl": false,
+    "email": false,
+    "smtp": false,
+    "smtp_server": "",
+    "smtp_port": "",
+    "smtp_secure": "",
+    "smtp_user": "",
+    "smtp_password": "",
+    "email_from": "",
+    "email_from_title": ""
 }

@@ -144,6 +144,16 @@ start_service() {
     echo -e "\t${greyColor}Service: ${endColor} ${greenColor}started and enabled${endColor}"
 }
 
+# Function to download PHPMailer
+download_phpmailer() {
+    local lib_path=$1
+    mkdir -p "$lib_path"
+    wget https://github.com/PHPMailer/PHPMailer/archive/refs/heads/master.zip -O "$lib_path/phpmailer.zip"
+    unzip "$lib_path/phpmailer.zip" -d "$lib_path"
+    mv "$lib_path/PHPMailer-master" "$lib_path/phpmailer"
+    rm "$lib_path/phpmailer.zip"
+}
+
 # Update paths and panel in wpm_jobs.sh
 update_wpm_jobs_file() {
     WPM_JOBS_FILE="$BASE_DIR/wpm_bash/wpm_jobs.sh"
@@ -323,4 +333,69 @@ if [[ "$install_service" == "Y" || "$install_service" == "y" ]]; then
     fi
 fi
 
+# Ask the user about email configuration
+echo -n -e "\n${yellowColor}Do you want to activate email sending? (Y/N): ${endColor}"
+read activate_email
+if [[ "$activate_email" == "Y" || "$activate_email" == "y" ]];then
+    # Set email to true in config.json
+    config_path="$BASE_DIR/wp_monitor/config.json"
+    if [ "$check" = false ]; then
+        jq '.email = true' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+    fi
+    echo -n -e "\n${yellowColor}Do you want to use SMTP? (Y/N): ${endColor}"
+    read use_smtp
+    if [[ "$use_smtp" == "Y" || "$use_smtp" == "y" ]];then
+        # Set smtp to true in config.json and ask for SMTP details
+        if [ "$check" = false ]; then
+            jq '.smtp = true' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter SMTP server: ${endColor}"
+        read smtp_server
+        if [ "$check" = false ]; then
+            jq --arg smtp_server "$smtp_server" '.smtp_server = $smtp_server' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter SMTP port: ${endColor}"
+        read smtp_port
+        if [ "$check" = false ]; then
+            jq --arg smtp_port "$smtp_port" '.smtp_port = $smtp_port' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter SMTP secure (ssl/tls): ${endColor}"
+        read smtp_secure
+        if [ "$check" = false ]; then
+            jq --arg smtp_secure "$smtp_secure" '.smtp_secure = $smtp_secure' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter SMTP user (normally email address): ${endColor}"
+        read smtp_user
+        if [ "$check" = false ]; then
+            jq --arg smtp_user "$smtp_user" '.smtp_user = $smtp_user' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter SMTP password: ${endColor}"
+        read -s smtp_password
+        if [ "$check" = false ]; then
+            jq --arg smtp_password "$smtp_password" '.smtp_password = $smtp_password' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n\n${yellowColor}Enter email from (normally same address in SMTP user): ${endColor}"
+        read email_from
+        if [ "$check" = false ]; then
+            jq --arg email_from "$email_from" '.email_from = $email_from' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        echo -n -e "\n${yellowColor}Enter email from title (ex. WP Monitor): ${endColor}"
+        read email_from_title
+        if [ "$check" = false ]; then
+            jq --arg email_from_title "$email_from_title" '.email_from_title = $email_from_title' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+        # Download PHPMailer
+        lib_path="$document_root/lib"
+        if [ "$check" = false ]; then
+            download_phpmailer "$lib_path"
+        fi
+    else
+        # Ask for the email from address for mail (php)
+        echo -n -e "\n${yellowColor}Enter email from wich you want to send emails: ${endColor}"
+        read email_from
+        if [ "$check" = false ]; then
+            jq --arg email_from "$email_from" '.email_from = $email_from' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+        fi
+    fi
+fi
 echo -e "\n\n${greenColor}--------------- WP Monitor has been installed successfully ---------------${endColor}"
