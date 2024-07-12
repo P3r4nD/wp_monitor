@@ -35,6 +35,16 @@ class WPMonitor {
     * @var string $telegramToken     Telegram bot token
     * @var string $telegramChatId    Telegram chat ID
     * @var bool   $telegramEnabled   Flag to enable/disable Telegram notifications
+    * @var bool   $sendMail          Flag to enable/disable Email functionalitiy
+    * @var bool   $sendSMTP          Flag to enable/disable SMTP protocol
+    * @var string $smtpServer        Name or IP of SMTP server
+    * @var int    $smtpPort          SMTP server port number
+    * @var string $smtpSecure        SMTP security (ssl, tls)
+    * @var string $smtpUser          SMTP user (normally it's a email address)
+    * @var string $smtpPassword      SMTP password
+    * @var string $mailFrom          From field email header
+    * @var string $mailFromTitle     Title or name for 'From field' email header
+    * @var string $mailer            PHPMail or PHPMailer
     */
     
     protected $initStatus;
@@ -53,6 +63,16 @@ class WPMonitor {
     protected $telegramToken;
     protected $telegramChatId;
     protected $telegramEnabled;
+    protected $sendMail;
+    protected $sendSMTP;
+    protected $smtpServer;
+    protected $smtpPort;
+    protected $smtpSecure;
+    protected $smtpUser;
+    protected $smtpPassword;
+    protected $mailFrom;
+    protected $mailFromTitle;
+    protected $mailer;
 
 
     /**
@@ -96,6 +116,7 @@ class WPMonitor {
             }
         }
         
+        // If the environment variable is not defined raise exception error
         if (!$wpm_path) {
             $this->initStatus = False;
             throw new Exception($this->translate("The environment variable [WPM_PATH] is not defined. Make sure you do it."));
@@ -113,13 +134,19 @@ class WPMonitor {
             throw new Exception($this->translate("The [app_path] is not set correctly. Make sure the directory you defined in the [WPM_PATH] environment variable exists."));    
         }
         
+        /**
+         * Path to config file
+         *
+         */
         $configPath = $wpm_path . self::CONFIG_FILE;
         
+        // If the config file is not configured, raise exception error
         if (!file_exists($configPath)) {
             $this->initStatus = False;
             throw new Exception($this->translate("The configuration file [config.json] does not exist."));
         }
         
+        // Read config file
         $configData = file_get_contents($configPath);
         $config = json_decode($configData, true);
         
@@ -230,6 +257,56 @@ class WPMonitor {
         * Whether to use cURL for HTTP requests.
         */
         $this->useCurl = $config['use_curl'] ?? true;
+        
+        /**
+        * Whether to allow send mails from app.
+        */
+        $this->sendMail = $config['email'] ?? false;
+        
+        //Check email config
+        if ($this->sendMail) {
+            
+            $this->sendSMTP = $config['smtp'] ?? false;
+            
+            if ($this->sendSMTP) {
+                
+                $this->smtpServer = $config['smtp_server'] ?? null;
+                
+                if((!$this->smtpServer)) {
+                    throw new Exception($this->translate("To send emails using the SMTP protocol, you must configure an smtp server [smtp_server] in config.json"));
+                }
+                
+                $this->smtpPort = $config['smtp_port'] ?? null;
+                
+                if((!$this->smtpPort)) {
+                    throw new Exception($this->translate("To send emails using the SMTP protocol, you must configure an smtp port [smtp_port] in config.json"));
+                }
+                
+                $this->smtpSecure = $config['smtp_secure'] ?? null;
+                
+                if((!$this->smtpSecure)) {
+                    throw new Exception($this->translate("To send emails using the SMTP protocol, you must define a encryption mechanism [smtp_secure] in config.json"));
+                }
+                
+                $this->smtpUser = $config['smtp_user'] ?? null;
+                
+                if((!$this->smtpUser)) {
+                    throw new Exception($this->translate("To send emails using the SMTP protocol, you must define a username [smtp_user] in config.json"));
+                }
+                
+                $this->smtpPassword = $config['smtp_password'] ?? null;
+                
+                if((!$this->smtpPassword)) {
+                    throw new Exception($this->translate("To send emails using the SMTP protocol, you must define a password [smtp_password] in config.json"));
+                }
+                
+                $this->mailFrom = $config['email_from'] ?? null;
+                
+                $this->mailFromTitle = $config['email_from_title'] ?? null;
+                
+            }
+            
+        }
 
         /**
         * Path to the application data directory.
@@ -250,10 +327,16 @@ class WPMonitor {
         
     }
     
+    /**
+    * Get init status
+    */
     public function getInitStatus() {
         return $this->initStatus;
     }
     
+    /**
+    * Get current app url
+    */
     private function getCurrentUrl() {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
         $domainName = $_SERVER['HTTP_HOST'];
@@ -261,6 +344,10 @@ class WPMonitor {
 
         return $protocol . $domainName;
     }
+    
+    /**
+    * Check if current app url is callable
+    */
     public function urlExists($url) {
         
         $headers = @get_headers($url);
@@ -272,6 +359,9 @@ class WPMonitor {
         }
     }
     
+    /**
+    * Set default language
+    */
     public function setDefaultLocale($locale) {
         
         $this->appLocaleMessages = "wp_monitor_messages";
@@ -280,6 +370,9 @@ class WPMonitor {
         $this->setLocale($locale);
     }
     
+    /**
+    * Set language
+    */
     public function setLocale($locale) {
         $this->appLocale = $locale;
 
@@ -292,7 +385,10 @@ class WPMonitor {
         textdomain($this->appLocaleMessages);
         bind_textdomain_codeset($this->appLocaleMessages, 'UTF-8');
     }
-
+    
+    /**
+    * Function to translate strings
+    */
     public function translate($message) {
         return gettext($message);
     }
@@ -321,6 +417,10 @@ class WPMonitor {
         return sprintf("No logs for '%s' time", $timeObject[$tf]);
     }
     
+    /**
+    * Method to get lower time limit options for menu select
+    *
+    */
     private function lowerTimeLimitMenuObj(){
     
         $timeLimits = array(
@@ -381,7 +481,13 @@ class WPMonitor {
                 return false;
         }
     }
-
+    
+    /**
+    * Method to get domain from a URL
+    *
+    * @param string $domain_url Domain URL
+    *
+    */
     private function getDomain($domain_url) {
         $pieces = parse_url($domain_url);
         $domain = isset($pieces['host']) ? $pieces['host'] : '';
@@ -390,7 +496,14 @@ class WPMonitor {
         }
         return false;
     }
-
+    
+    /**
+    * Method to check if any plugin is aoutdated,
+    * at the first one that is detected as outdated, we exit outdated=True
+    *
+    * @param string $domain_url Domain URL
+    *
+    */
     public function checkForOutdatedPlugins($plugins) {
 
         $outdated = False;
@@ -407,6 +520,12 @@ class WPMonitor {
         return $outdated;
     }
     
+    /**
+    * Validate if WP code is valid hexadecimal format
+    *
+    * @param string $code wp_id=code
+    *
+    */
     public function validateHexCode($code){
         
         // Check if the output is a 10-character hexadecimal value
@@ -417,15 +536,26 @@ class WPMonitor {
         }
     }
     
+    /**
+    * Get WP code from file in wpm_data/x-code.json
+    *
+    * @param string $file wp_id=code
+    *
+    */
     private function readCodeFromFilename($file){
         
         $filename = basename($file, ".json");
-        // Extract the ID part of the filename (the part before the hyphen)
+        // Extract the CODE part of the filename (the part after the hyphen)
         $code = explode('-', $filename)[1];
         
         return $code;
     }
     
+    /**
+    * Read all WP data
+    *
+    *
+    */
     public function readWPData() {
         
         $wp_files = glob($this->appPath."/wpm_data/*.json");
@@ -461,6 +591,12 @@ class WPMonitor {
         
     }
     
+    /**
+    * Read WP json data by code from wpm_data/id-code.json
+    *
+    * @param string $code wp_id=code
+    *
+    */
     public function readWPJsonData($code) {
         $wp_data_dir = $this->appPath."/wpm_data/";
         $files = glob($wp_data_dir . '*-' . $code . '.json');
@@ -471,6 +607,36 @@ class WPMonitor {
         return null;
     }
     
+    /**
+    * Get WP id by code from wpm_data/id-code.json
+    *
+    * @param string $code wp_id=code
+    *
+    */
+    public function getIDbyCode($code) {
+        
+        $wp_data_dir = $this->appPath."/wpm_data/";
+        $file = glob($wp_data_dir . '*-' . $code . '.json');
+
+        if (count($file) > 0) {
+            // Extract the filename without the extension
+            $wp_file = basename($file[0], '.json');
+
+            // Split the filename into ID and code parts
+            list($id, $file_code) = explode('-', $wp_file, 2);
+
+            // Check if the code matches
+            if ($file_code === $code) {
+                return $id;
+            }
+        }
+        return null;
+    }
+    
+    /**
+    * Read WP installs data and print main table
+    *
+    */
     public function printTableWP() {
 
         $wp_installs = $this->readWPData();
@@ -511,6 +677,10 @@ class WPMonitor {
         }
     }
     
+    /**
+    * Read WP installs data and print main table but this call is from WPMonitorAPI
+    *
+    */
     public function getTableWP() {
 
         $wp_installs = $this->readWPData();
@@ -565,7 +735,11 @@ class WPMonitor {
             return false;
         }
     }
-
+    
+    /**
+    * Clean tmp files after decompress logs
+    *
+    */
     public function cleanTMP($tempDir) {
 
         // After finished working with the extracted files, delete the temporary directory
@@ -577,6 +751,12 @@ class WPMonitor {
         }
     }
     
+    /**
+    * Read WP logs compressed file by domain
+    *
+    * @param string $domain_url to search log file wpm_data/logs/domain.com_error_log.tar.gz
+    *
+    */
     public function readWPLogs($domain_url, $time_frame=False) {
         
         $domain = $this->getDomain($domain_url);
@@ -608,7 +788,13 @@ class WPMonitor {
 
         return $this->readLogByDate($log_data, $time_frame);
     }
-
+    
+    /**
+    * Get WP log by date
+    *
+    * @param array $log_data Contains array of log lines
+    *
+    */
     private function readLogByDate($log_data, $timeframe=False) {
 
         // Array to store the lines of the file that are within the last X months
@@ -659,82 +845,198 @@ class WPMonitor {
 
         return $logsWithinDate;
     }
-
+    
+    /**
+    * Read email log by code
+    *
+    * @param string $code Code to find email log file
+    *
+    */
+    public function readEmailLog($code) {
+        
+        // Obtain id for this code
+        $wp_id = $this->getIDbyCode($code);
+        $log_file_name = sprintf($this->appPath."/wpm_data/%s-email.log", $wp_id);
+        
+        if (!file_exists($log_file_name)) {
+            return [];
+        }
+        
+        $log_file = file_get_contents($log_file_name);
+        $log_lines = explode("\n",$log_file);
+        
+        return $log_lines;
+        
+    }
+    
+    /**
+    * Get APP URL
+    *
+    */
     public function getAppURL() {
         return $this->appUrl;
     }
-
+    
+    /**
+    * Get APP path
+    *
+    */
     public function getAppPath() {
         return $this->appPath;
     }
-
+    
+    /**
+    * Get app data path wp_monitor/wpm_data/
+    *
+    */
     public function getDataPath() {
         return $this->appData;
     }
-
+    
+    /**
+    * Get the path to the logs directory
+    *
+    */
     public function getLogsPath() {
         return $this->logFilesPath;
     }
+    
+    /**
+    * Get jobs file 
+    *
+    */
     public function getJobsFile() {
         return $this->jobsFile;
     }
+    
+    /**
+    * Get jobs executed file 
+    *
+    */
     public function getJobsExecutedFile() {
         return $this->jobsExecutedFile;
     }
+    
+    /**
+    * Get app reload time for interface web page
+    *
+    */
     public function getReloadTime() {
         return $this->appReloadTime;
     }
-    // WP-Tookit actions
+    
+    /**
+    * Write new job to jobs file
+    *
+    */
     private function writeJob($job) {
         file_put_contents($this->jobsFile, $job . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
-
+    
+    /**
+    * Write Update Wordpress job to jobs file
+    *
+    * @param int $wp_id WP installation ID
+    */
     public function updateWordPress($wp_id) {
         $job = "update_wp $wp_id";
         $this->writeJob($job);
     }
-
+    
+    /**
+    * Write Update Wordpress plugin job to jobs file
+    *
+    * @param int $wp_id WP installation ID
+    * @param string $plugin_name WordPress Plugin slug
+    */
     public function updatePlugin($wp_id, $plugin_name) {
         $job = "update_plugin $wp_id $plugin_name";
         $this->writeJob($job);
     }
-
+    
+    /**
+    * Write Update Wordpress theme job to jobs file
+    *
+    * @param int $wp_id WP installation ID
+    * @param string $template_name WordPress theme slug
+    */
     public function updateTemplate($wp_id, $template_name) {
         $job = "update_template $wp_id $template_name";
         $this->writeJob($job);
     }
-
+    
+    /**
+    * Write Disable Wordpress plugin job to jobs file
+    *
+    * @param int $wp_id WP installation ID
+    * @param string $plugin_name WordPress Plugin slug
+    */
     public function disablePlugin($wp_id, $plugin_name) {
         $job = "disable_plugin $wp_id $plugin_name";
         $this->writeJob($job);
     }
-
+    
+    /**
+    * Validate if action is in available actions
+    *
+    * @param string $action Action slug
+    */
     public function validateWPAction($action) {
         $valid_actions = ['do_jobs', 'get_logs'];
         return in_array($action, $valid_actions, true);
     }
-
+    
+    /**
+    * Validate if WP id is int var
+    *
+    * @param int $id WordPress ID
+    */
     public function validateID($id) {
         return filter_var($id, FILTER_VALIDATE_INT);
     }
-
+    
+    /**
+    * Validate if var is bool
+    *
+    * @param bool $bool Boolean var
+    */
     public function validateBool($bool) {
         return is_bool($bool);
     }
-    //Validat plugin and theme names (slug-type)
+    
+    /**
+    * Validat plugin and theme names (slug-type)
+    *
+    * @param string $name Slug name for plugin or theme
+    */
     public function validateName($name) {
         return preg_match('/^[a-zA-Z0-9\-]+$/', $name);
     }
-
+    
+    /**
+    * Validate if plugin job action is in available actions
+    *
+    * @param string $action Action name
+    */
     public function validateAction($action) {
         $valid_actions = ['update', 'disable'];
         return in_array($action, $valid_actions, true);
     }
-
+    
+    /**
+    * Validate if domain url is valid url
+    *
+    * @param string $url Domain url
+    */
     public function validateUrlDomain($url) {
         return filter_var($url, FILTER_VALIDATE_URL) && preg_match('/^https:\/\/([a-zA-Z0-9\-]+\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}$/', $url);
     }
-
+    
+    /**
+    * Read pending jobs in jobs file
+    *
+    * @param string $job_file Jobs file
+    */
     private function readJobs($job_file) {
         if (!file_exists($job_file)) {
             return [];
@@ -742,8 +1044,12 @@ class WPMonitor {
         $lines = file($job_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         return $lines;
     }
-    // Function to add a single job
-
+    
+    /**
+    * Write new job to jobs file
+    *
+    * @param string $new_job Jobs file
+    */
     public function addJob($new_job) {
         $job_file = $this->getJobsFile();
         $existing_jobs = $this->readJobs($job_file);
@@ -763,7 +1069,12 @@ class WPMonitor {
             return "duplicated";
         }
     }
-
+    
+    /**
+    * Check if WordPress installation ID have pending jobs
+    *
+    * @param int $wp_id WordPress ID
+    */
     private function searchInJobs($wp_id) {
 
         $job_file = $this->getJobsFile();
@@ -793,6 +1104,134 @@ class WPMonitor {
         // No pending jobs found for the given ID
         return false;
     }
+    
+    /**
+    * Check if app is configured to permit send mails, return bool true|false
+    *
+    */
+    public function mailActive(){
+        return $this->sendMail;
+    }
+    
+    /**
+    * Bridge function to manage the sending of emails and their corresponding logs
+    *
+    * @param array $mail_data contains:
+    * mail_to=array of email addresses, wp_id, mail_title, mail_body, mail_level
+    */
+    public function prepareMailSend($mail_data) {
+        
+        $errors = [];
+        
+        foreach($mail_data['mail_to'] AS $email_to) {
+            
+            $email_send = $this->mailSend($mail_data['wp_id'], $email_to, $mail_data['mail_title'], $mail_data['mail_body']);
+            
+            sleep(1);
+            
+            if($email_send){
+                $this->saveEmailLog($mail_data['wp_id'], $email_to, $mail_data['mail_title'], $mail_data['mail_body'], $mail_data['mail_level'], "SUCCESS");
+            }else{
+                $errors[] = true;
+                $this->saveEmailLog($mail_data['wp_id'], $email_to, $mail_data['mail_title'], $mail_data['mail_body'], $mail_data['mail_level'], "ERROR:".$email_send);
+            }  
+        }
+        
+        if(empty($errors)){
+            return ['success' => true, 'message' => "Emails sent correctly"];
+        }
+        
+        return ['errors' => $errors];
+        
+    }
+    
+    /**
+    * Send Email function
+    *
+    * @param int $wp_id WordPress installation ID:
+    * @param string $email_to email address
+    * @param string $email_subject email subject
+    * @param string $email_body email body content
+    */
+    public function mailSend($wp_id, $email_to, $email_subject, $email_body) {
+        
+        require_once 'lib/phpmailer/src/Exception.php';
+        require_once 'lib/phpmailer/src/PHPMailer.php';
+        require_once 'lib/phpmailer/src/SMTP.php';
+
+        $this->mailer = new PHPMailer\PHPMailer\PHPMailer(true);
+
+        try {
+            //$this->mailer->SMTPDebug = 2;
+            $this->mailer->isSMTP();
+            $this->mailer->Host       = $this->smtpServer;
+            $this->mailer->SMTPAuth   = true;
+            $this->mailer->Username   = $this->smtpUser;
+            $this->mailer->Password   = $this->smtpPassword;
+            $this->mailer->SMTPSecure = $this->smtpSecure;
+            $this->mailer->Port       = $this->smtpPort;
+
+            // Destinatarios
+            $this->mailer->setFrom($this->mailFrom, $this->mailFromTitle);
+            $this->mailer->addAddress($email_to);
+
+            // Contenido del correo
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = $email_subject;
+            $this->mailer->Body    = $email_body;
+            $this->mailer->AltBody = strip_tags($email_body);
+
+            $this->mailer->send();
+            return true;
+            
+        } catch (PHPMailer\PHPMailer\Exception $e) {
+            return $this->mailer->ErrorInfo;
+        }
+    }
+    
+    /**
+    * Write email log line
+    *
+    * @param int $id Used to find id-email.log
+    * @param string $to email recipient
+    * @param string $subject email subject
+    * @param string $body email body content
+    * @param string $priority email urgency orpriority
+    * @param string $status status of sended email SUCCESS|ERROR
+    */
+    private function saveEmailLog($id, $to, $subject, $body, $priority, $status)
+    {
+        $dateTime = date('d-m-Y H:i:s');
+        $logMessage = "{$dateTime} {$to} {$subject} {$body} {$priority} {$status}\n";
+        $logFile = sprintf($this->appPath."/wpm_data/%s-email.log", $id);
+
+        // Create x-mail.log file if doesn't exists
+        if (!file_exists($logFile)) {
+            touch($logFile);
+        }
+
+        file_put_contents($logFile, $logMessage, FILE_APPEND);
+    }
+    
+    /**
+    * Sanitize html 
+    *
+    * @param string $input text or html from email form fields
+    * 
+    */
+    public function sanitizeTextField($input) {
+        // List of allowed HTML tags
+        $allowed_tags = '<h1><h2><b><i><u><strong><em><p><br><ul><ol><li><a><img>';
+
+        // Delete not allowed tags
+        $sanitized = strip_tags($input, $allowed_tags);
+
+        // Convertir caracteres especiales en entidades HTML
+        $sanitized = htmlspecialchars($sanitized, ENT_QUOTES, 'UTF-8');
+
+        return $sanitized;
+    }
+    
     // BONUS Telegram
     // Public function to send a message to Telegram
     public function sendMessageToTelegram($message) {
@@ -869,5 +1308,4 @@ class WPMonitor {
 
         return $response;
     }
-
 }

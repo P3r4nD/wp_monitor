@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Convertir el JSON a un array asociativo
         $data = json_decode($postData, true);
         $errors = [];
-
+        
         if (!isset($data['wp_action']) || !$WPMonitor->validateWPAction($data['wp_action'])) {
             $errors[] = 'Invalid or missing wp_action.';
         }
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($data['wp_action'] === "do_jobs"){
 
-            if (!isset($data['wp_id']) || !$WPMonitor->validateID($data['wp_id'])) {
+            if (!isset($data['wp_id']) || !$WPMonitor->validateHexCode($data['wp_id'])) {
                 $errors[] = 'Invalid or missing wp_id.';
             }
 
@@ -120,7 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($data['wp_theme']) && $data['wp_theme']!= false && !$WPMonitor->validateName($data['wp_theme'])) {
                 $errors[] = 'Invalid wp_theme.';
             }
-
+            
+            $wp_id = $WPMonitor->getIDbyCode($data['wp_id']);
+            
+            // Validate wp_theme
+            if (!$wp_id) {
+                $errors[] = "This WP id doesn't exists.";
+            }
+            
             // Check for errors
             if (!empty($errors)) {
                 // Send response with errors
@@ -128,19 +135,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['errors' => $errors]);
                 exit;
             }
-
+            
+            
             // Format jobs
             $jobs = [];
             if ($data['wp_update']) {
-                $jobs[] = "update_wp " . $data['wp_id'];
+                $jobs[] = "update_wp " . $wp_id;
             }
 
             foreach ($data['plugins'] as $plugin) {
-                $jobs[] = "{$plugin['action']}_plugin " . $data['wp_id'] . " " . $plugin['name'];
+                $jobs[] = "{$plugin['action']}_plugin " . $wp_id . " " . $plugin['name'];
             }
 
             if (!empty($data['wp_theme'])) {
-                $jobs[] = "update_template " . $data['wp_id'] . " " . $data['wp_theme'];
+                $jobs[] = "update_template " . $wp_id . " " . $data['wp_theme'];
             }
             $result_jobs = [];
             // Add each job
@@ -159,6 +167,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             echo json_encode(["success" => $success, $result_jobs]);
         }
+        
+        if ($data['wp_action'] === "send_mail") {
+            
+            if(!isset($data['wp_id'])) {
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => "Bad WordPress ID"]);
+                exit;
+            }
+            
+            if(!isset($data['email_subject']) || $data['email_subject'] === ""){
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => "To send an email you must indicate a subject"]);
+                exit;
+            }
+            
+            if(!isset($data['email_body']) || $data['email_body'] === ""){
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => "To send an email you must indicate the body message"]);
+                exit;
+            }
+            
+            if(isset($data['email_copy'])) {
+                
+                if ($data['email_copy'] === ""){
+                    http_response_code(400); // Bad Request
+                    echo json_encode(['error' => "You have not indicated which addresses you want to send a copy to."]);
+                    exit;
+                }
+                
+                $copy_to = [];
+                $emails = explode(",", $data['email_copy']);
+                    
+                foreach($emails AS $email) {
+                    $email = filter_var(trim($email), FILTER_SANITIZE_EMAIL);
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        http_response_code(400); // Bad Request
+                        echo json_encode(['error' => "The email address is not valid."]);
+                        exit;
+                    }
+
+                    $copy_to[] = $email;
+                }
+            }
+            
+            if(!isset($data['email_level']) || preg_match('/^(low|medium|high)$/', $data['email_level']) !== 1){
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => "Urgency level unkown."]);
+                exit;
+            }
+
+            $code = $data['wp_id'];
+            
+            if($WPMonitor->validateHexCode($code)) {
+                $wp_data = $WPMonitor->readWPJsonData($code);
+                if($wp_data && $wp_data['siteUrl'] === $data['wp_site_url']) {
+                    
+                    $mail_to = $wp_data['admin_email'];
+                    
+                    if(!empty($copy_to)) {
+                        array_unshift($copy_to, $mail_to);
+                    }
+                    
+                    $emailData = [
+                        "wp_id" => $wp_data['id'],
+                        "mail_to" => (isset($copy_to) && !empty($copy_to)) ? $copy_to : $mail_to,
+                        "mail_title" => $data['email_subject'],
+                        "mail_body" => $data['email_body'],
+                        "mail_level" => $data['email_level'],
+                    ];
+                    
+                    $emailSend = $WPMonitor->prepareMailSend($emailData);
+                    
+                    echo json_encode($emailSend);
+                }
+            }
+            exit;
+            $data['success'] = false;
+            echo json_encode($data); 
+            exit;
+            $data['email'] = $WPMonitor->mailSend(true, "perandreu@gmail.com", "Erores en wordpress", "actualiza ya");
+            
+            exit;
+        }
     }
 }
 
@@ -175,8 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             if ($wp_object) {
 
                 $json_data = $wp_object;
+                $json_data['id'] = $code;
                 $json_data['logs'] = $WPMonitor->readWPLogs($json_data['siteUrl']);
-
+                $json_data['email_log'] = $WPMonitor->readEmailLog($code);
+                
                 if (empty($json_data['logs'])) {
                     $json_data['logs_msg'] = $WPMonitor->getDefaultMsgTime();
                 }

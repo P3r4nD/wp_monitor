@@ -48,126 +48,11 @@ if (!isset($_SESSION['first_visit_time'])) {
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3">
 
         <link href="assets/bootstrap-5.3.3/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-
+        
+        <link href="assets/styles.css" rel="stylesheet" crossorigin="anonymous">
+        
         <meta name="theme-color" content="#712cf9">
 
-
-        <style>
-            .bd-placeholder-img {
-                font-size: 1.125rem;
-                text-anchor: middle;
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                user-select: none;
-            }
-
-            @media (min-width: 768px) {
-                .bd-placeholder-img-lg {
-                    font-size: 3.5rem;
-                }
-            }
-
-            .b-example-divider {
-                width: 100%;
-                height: 3rem;
-                background-color: rgba(0, 0, 0, .1);
-                border: solid rgba(0, 0, 0, .15);
-                border-width: 1px 0;
-                box-shadow: inset 0 .5em 1.5em rgba(0, 0, 0, .1), inset 0 .125em .5em rgba(0, 0, 0, .15);
-            }
-
-            .b-example-vr {
-                flex-shrink: 0;
-                width: 1.5rem;
-                height: 100vh;
-            }
-
-            .bi {
-                vertical-align: -.125em;
-                fill: currentColor;
-            }
-
-            .nav-scroller {
-                position: relative;
-                z-index: 2;
-                height: 2.75rem;
-                overflow-y: hidden;
-            }
-
-            .nav-scroller .nav {
-                display: flex;
-                flex-wrap: nowrap;
-                padding-bottom: 1rem;
-                margin-top: -1px;
-                overflow-x: auto;
-                text-align: center;
-                white-space: nowrap;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .btn-bd-primary {
-                --bd-violet-bg: #712cf9;
-                --bd-violet-rgb: 112.520718, 44.062154, 249.437846;
-
-                --bs-btn-font-weight: 600;
-                --bs-btn-color: var(--bs-white);
-                --bs-btn-bg: var(--bd-violet-bg);
-                --bs-btn-border-color: var(--bd-violet-bg);
-                --bs-btn-hover-color: var(--bs-white);
-                --bs-btn-hover-bg: #6528e0;
-                --bs-btn-hover-border-color: #6528e0;
-                --bs-btn-focus-shadow-rgb: var(--bd-violet-rgb);
-                --bs-btn-active-color: var(--bs-btn-hover-color);
-                --bs-btn-active-bg: #5a23c8;
-                --bs-btn-active-border-color: #5a23c8;
-            }
-
-            .bd-mode-toggle {
-                z-index: 1500;
-            }
-
-            .bd-mode-toggle .dropdown-menu .active .bi {
-                display: block !important;
-            }
-            .table-header {
-                font-size:0.8rem;
-            }
-            .table-cell {
-                font-size:0.8rem;
-            }
-            .table-cell-center {
-                font-size:0.8rem;
-                text-align: center;
-            }
-            .cell-danger {
-                background-color:#b02a37 !important;
-            }
-            .table-hover {
-                cursor:pointer !important;
-            }
-            .table-hover tr:focus {
-                border:solid 1px #666666;
-            }
-            .nav-tabs .nav-link{
-                margin-bottom: calc(-1 * var(--bs-nav-tabs-border-width));
-                border-right: 1px solid #ddd;
-                border-top-left-radius: 0;
-                border-top-right-radius: 0;
-                border-top: none;
-            }
-            .wpm-title {
-                text-align: right;
-            }
-            .progress {
-                border-radius:0px !important;
-            }
-            .help-text {
-                font-size:13px;
-            }
-            .disallowed {
-                cursor: not-allowed;
-            }
-        </style>
     </head>
     <body>
         <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
@@ -347,7 +232,7 @@ if (!isset($_SESSION['first_visit_time'])) {
                 </div>
             <?php } elseif (isProtectedDirectory() && !$initErrors) { ?>
                 <div class="table-responsive">
-                    <table id="table-wp" class="table table-sm table-hover">
+                    <table id="table-wpm" class="table table-sm table-hover">
                         <thead>
                             <tr>
                                 <th class="table-header">Site</th>
@@ -386,7 +271,7 @@ if (!isset($_SESSION['first_visit_time'])) {
             </footer>
         </div>
         <!-- Modal -->
-        <div class="modal fade" id="wpExtModal" tabindex="-1" aria-labelledby="wpExtModalLabel" aria-hidden="true">
+        <div class="modal fade" id="wpm-modal" tabindex="-1" aria-labelledby="wpExtModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -401,6 +286,7 @@ if (!isset($_SESSION['first_visit_time'])) {
                                 <button class="nav-link" id="nav-themes-tab" data-bs-toggle="tab" data-bs-target="#nav-themes" type="button" role="tab" aria-controls="nav-themes" aria-selected="false">Themes</button>
                                 <button class="nav-link" id="nav-ssl-tab" data-bs-toggle="tab" data-bs-target="#nav-ssl" type="button" role="tab" aria-controls="nav-ssl" aria-selected="false">SSL</button>
                                 <button class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab" aria-controls="nav-logs" aria-selected="false">Logs</button>
+                                <?php if ($WPMonitor->mailActive()) { ?><button class="nav-link" id="nav-email-tab" data-bs-toggle="tab" data-bs-target="#nav-email" type="button" role="tab" aria-controls="nav-email" aria-selected="false">Email</button><?php } ?>
                             </div>
                         </nav>
 
@@ -521,8 +407,6 @@ if (!isset($_SESSION['first_visit_time'])) {
                                         </button>
                                     </div>
                                 </form>
-
-
                                 <table id="table-logs" class="table table-sm table-logs">
 
                                     <tbody>
@@ -540,11 +424,100 @@ if (!isset($_SESSION['first_visit_time'])) {
                                     </div>
                                 </div>
                             </div>
+                            <?php if ($WPMonitor->mailActive()) { ?>
+                            <div class="tab-pane fade" id="nav-email" role="tabpanel" aria-labelledby="nav-email-tab" tabindex="4">
+                                <ul class="nav nav nav-underline mb-3" id="pills-tab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                      <button class="nav-link active" id="pills-email-log-tab" data-bs-toggle="pill" data-bs-target="#pills-email-log" type="button" role="tab" aria-controls="pills-email-log" aria-selected="true">Email log</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                      <button class="nav-link" id="pills-email-tab" data-bs-toggle="pill" data-bs-target="#pills-email" type="button" role="tab" aria-controls="pills-email" aria-selected="false">Send mail</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content" id="pills-tabContent">
+                                    <div class="tab-pane fade show active" id="pills-email-log" role="tabpanel" aria-labelledby="pills-email-log-tab" tabindex="0">
+                                        <table id="table-mail-logs" class="table table-sm table-logs">
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="tab-pane fade" id="pills-email" role="tabpanel" aria-labelledby="pills-email-tab" tabindex="0">
+                                        <form id="email-form">
+                                            <div id="boxAlert"></div>
+                                            <div class="container text-left">
+                                                <div class="row mb-3">
+                                                    <label for="email-admin" class="col-sm-2 col-form-label">Send to:</label>
+                                                    <div class="col-sm-10">
+                                                        <span id="email-admin" class="email-admin"></span>
+                                                    </div>
+                                                </div>
+                                                <fieldset class="row">
+                                                    <div class="row mb-3">
+                                                        <label for="mail-copy" class="col-sm-2 col-form-label">Email copy</label>
+                                                        <div class="col-sm-10">
+                                                                <input class="form-check-input" type="checkbox" id="mail-copy">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-sm-12">
+                                                            <input type="text" id="mail-copy-data" class="form-control d-none" placeholder="Enter email addresses separated by commas">
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                                <hr>
+                                                <div class="row mb-3">
+                                                    <label for="mail-message" class="col-sm-2 col-form-label">Title</label>
+                                                    <div class="col-sm-10">
+                                                        <select id="mail-message" class="form-select" required>
+                                                          <option selected disabled value="">Choose a email title</option>
+                                                          <option>Update plugins</option>
+                                                          <option>Remove plugins</option>
+                                                          <option>Update theme</option>
+                                                          <option>Remove theme</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-3">
+                                                    <label for="email-body" class="col-sm-2 col-form-label">Email body</label>
+                                                    <div class="col-sm-10">
+                                                        <textarea type="text" class="form-control" rows="3" id="mail-body" required></textarea>
+                                                    </div>
+                                                </div>
+                                                <fieldset class="row mb-3">
+                                                    <legend class="col-form-label col-sm-2 pt-0">Urgency level</legend>
+                                                    <div class="col-sm-10">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="levelRadios" id="gridRadios1" value="low" checked>
+                                                            <label class="form-check-label" for="levelRadios1">
+                                                                Low
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="levelRadios" id="gridRadios2" value="medium">
+                                                            <label class="form-check-label" for="levelRadios2">
+                                                                Medium
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check disabled">
+                                                            <input class="form-check-input" type="radio" name="levelRadios" id="gridRadios3" value="high">
+                                                            <label class="form-check-label" for="levelRadios3">
+                                                                High
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php } ?>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <input id="wp-install-id" name="wp-install-id" type="hidden" value="">
                         <button id="save-jobs" type="button" class="btn btn-primary btn-sm d-none">Save jobs</button>
+                        <button id="send-mail" type="button" class="btn btn-primary btn-sm d-none">Send mail</button>
                     </div>
                 </div>
             </div>
@@ -566,7 +539,7 @@ if (!isset($_SESSION['first_visit_time'])) {
             </div>
         </div>
         <!-- Toast -->
-        <div class="toast-container position-fixed bottom-3 end-0 p-3">
+        <div class="toast-container p-3 bottom-0 start-0">
             <div id="liveToastedMessage" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
                     <strong class="me-auto"></strong>
