@@ -775,16 +775,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /**
-     * Hide and show emails-copy input field when checkbox change status
+     * Hide and show emails-copy input field when checkbox exists and change status
      * 
      */
-    checkboxMailCopy.addEventListener('change', function () {
-        if (checkboxMailCopy.checked) {
-            inputMailsCopy.classList.remove('d-none');
-        } else {
-            inputMailsCopy.classList.add('d-none');
-        }
-    });
+    if (checkboxMailCopy) {
+        checkboxMailCopy.addEventListener('change', function () {
+            if (checkboxMailCopy.checked) {
+                inputMailsCopy.classList.remove('d-none');
+            } else {
+                inputMailsCopy.classList.add('d-none');
+            }
+        });
+    }
 
     /**
      * Show alert box in Email tab section showing message received from server side sendMail function
