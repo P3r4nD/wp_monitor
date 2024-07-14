@@ -9,6 +9,7 @@
     "log_files": "/logs",
     "jobs_file": "jobs",
     "jobs_executed_file": "jobs_executed",
+    "jobs_lock_file": "jobs.lock",
     "telegram_token": "",
     "telegram_chat_id": "",
     "telegram_enabled": false,
