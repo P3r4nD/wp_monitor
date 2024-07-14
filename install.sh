@@ -156,6 +156,7 @@ download_phpmailer() {
 
 # Update paths and panel in wpm_jobs.sh
 update_wpm_jobs_file() {
+    local CONTROL_PANEL=$1
     WPM_JOBS_FILE="$BASE_DIR/wpm_bash/wpm_jobs.sh"
 
     # Ensure the wpm_jobs.sh file exists
@@ -164,15 +165,13 @@ update_wpm_jobs_file() {
         exit 1
     fi
 
-    # Detect the control panel
-    cp=$(detect_control_panel)
 
     # Update paths and panel in wpm_jobs.sh
     sed -i "s|^JOBS_FILE=.*|JOBS_FILE=\"$BASE_DIR/jobs\"|" "$WPM_JOBS_FILE"
     sed -i "s|^JOBS_EXECUTED_FILE=.*|JOBS_EXECUTED_FILE=\"$BASE_DIR/jobs_executed\"|" "$WPM_JOBS_FILE"
     sed -i "s|^LOCK_FILE=.*|LOCK_FILE=\"$BASE_DIR/wpm_data/tmp/wp_monitor.lock\"|" "$WPM_JOBS_FILE"
     sed -i "s|^LOG_FILE=.*|LOG_FILE=\"$BASE_DIR/wpm_data/logs/jobs.log\"|" "$WPM_JOBS_FILE"
-    sed -i "s|^PANEL=.*|PANEL=\"$cp\"|" "$WPM_JOBS_FILE"
+    sed -i "s|^PANEL=.*|PANEL=\"$CONTROL_PANEL\"|" "$WPM_JOBS_FILE"
 }
 
 # Parse no-check args
@@ -236,8 +235,28 @@ else
     install_wp_monitor "$document_root" false
 fi
 
+# 3.2 Change web interface reload time in milliseconds
+echo -n -e "\n${yellowColor}Do you want to change default (60000ms=60s) web interface reload time? Write in milliseconds: ${endColor}"
+read new_reload_time
+
+while [[ "$new_reload_time" -lt 5000 ]]; do
+    echo -n -e "\n${redColor}The new value cannot be below 5000ms. Please enter a new value in milliseconds: ${endColor}"
+    read new_reload_time
+done
+
+if [[ "$new_reload_time" -gt 5000 ]]; then
+    # Set app_reload_time to the new value in config.json
+    config_path="$BASE_DIR/config.json"
+    if [ "$check" = false ]; then
+        jq --argjson new_reload_time "$new_reload_time" '.app_reload_time = $new_reload_time' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
+    fi
+    echo -e "\t${greyColor}Web reload time has been updated to: ${endColor} ${greenColor} ${new_reload_time}ms.${endColor}"
+else
+    echo -e "\n${yellowColor}No changes made to web interface reload time.${endColor}"
+fi
+
 echo -e "\n${yellowColor}Checking permissions: Setting [user:group] for www${endColor}"
-# 3.1 Get user:group and apply permissions
+# 3.3 Get user:group and apply permissions
 
 user_group=$(stat -c "%U:%G" "$document_root")
 echo -e "\t${greyColor}user:group: ${endColor} ${greenColor}$user_group${endColor}"
@@ -269,8 +288,9 @@ echo -e "\n${yellowColor}Updating CRON and JOBS files with new data: ${endColor}
 
 # Modify BASE_DIR in wpm_bash/wpm_jobs.sh
 echo -e "\t${greyColor}[BASE_DIR] updated in: ${endColor} ${greenColor} wpm_bash/wpm_jobs.sh${endColor}"
+
 if [ "$check" = false ]; then
-    update_wpm_jobs_file
+    update_wpm_jobs_file $control_panel
 fi
 
 # Modify USER_GROUP in CRON scripts
@@ -338,7 +358,7 @@ echo -n -e "\n${yellowColor}Do you want to activate email sending? (Y/N): ${endC
 read activate_email
 if [[ "$activate_email" == "Y" || "$activate_email" == "y" ]];then
     # Set email to true in config.json
-    config_path="$BASE_DIR/wp_monitor/config.json"
+    config_path="$BASE_DIR/config.json"
     if [ "$check" = false ]; then
         jq '.email = true' "$config_path" > "$config_path.tmp" && mv "$config_path.tmp" "$config_path"
     fi
