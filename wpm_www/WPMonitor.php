@@ -30,6 +30,7 @@ class WPMonitor {
     * @var string $logFilesPath      Path to log files directory
     * @var string $jobsFile          Path to jobs file
     * @var string $jobsExecutedFile  Path to executed jobs file
+    * @var string $jobsLockFile      Path to executed jobs lock file
     * @var bool   $useCurl           Flag to use cURL for HTTP requests
     * @var string $defaultRangeType  Default range type for logs (e.g., 'last_24_hours')
     * @var string $telegramToken     Telegram bot token
@@ -58,6 +59,8 @@ class WPMonitor {
     protected $logFilesPath;
     protected $jobsFile;
     protected $jobsExecutedFile;
+    protected $jobsLockFile;
+    protected $protectedFiles;
     protected $useCurl;
     protected $defaultRangeType;
     protected $telegramToken;
@@ -225,6 +228,18 @@ class WPMonitor {
         }
         
         /**
+        * Path to the jobs lock file.
+        */
+        $this->jobsLockFile = $this->appPath.$config['app_data']."/tmp/".$config['jobs_lock_file'] ?? null;
+        
+        // Check if the jobs lock file is configured.
+        if (!file_exists($this->jobsLockFile)) {
+            $this->initStatus = False;
+            $msg_error = $this->translate("The jobs lock file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH]/tmp/ and modify [jobs_file] in [config.json].");
+            throw new Exception(sprintf($msg_error, $this->jobsLockFile));
+        }
+        
+        /**
         * Default range type for logs.
         */
         $this->defaultRangeType = $config['default_range_type'] ?? 'last_24_hours';
@@ -324,6 +339,11 @@ class WPMonitor {
         $this->appLocaleMessages = $this->appPath.$config['app_locale_messages'] ?? null;
         
         $this->setLocale($this->appLocale);
+        
+        /**
+        * List of files that cannot be cleaned by deleting the contents of tmp
+        */
+        $this->protectedFiles = ["jobs.lock", "wpm_jobs.lock"];
         
     }
     
@@ -741,11 +761,10 @@ class WPMonitor {
     *
     */
     public function cleanTMP($tempDir) {
-
         // After finished working with the extracted files, delete the temporary directory
         $files = glob($this->appData."/tmp/*"); // Get all files in the temporary directory
         foreach ($files as $file) { // Delete each tmp file
-            if (is_file($file)) {
+            if (is_file($file) && !in_array(basename($file), $this->protectedFiles)) {
                 unlink($file);
             }
         }
@@ -925,6 +944,38 @@ class WPMonitor {
         return $this->appReloadTime;
     }
     
+    private function tryToWriteJob($newJob) {
+        // Intenta adquirir el bloqueo
+        $fp = fopen($this->jobsLockFile, "w");
+
+        // Definimos el tiempo máximo de espera en segundos (por ejemplo, 5 segundos)
+        $maxWaitTime = 5;
+        $startTime = time();
+
+        while (!flock($fp, LOCK_EX | LOCK_NB)) {
+            if ((time() - $startTime) >= $maxWaitTime) {
+                // Si ha pasado el tiempo máximo de espera, agrega el nuevo trabajo a la cola y retorna
+                $_SESSION['job_queue'][] = $newJob;
+                fclose($fp);
+                return "session_queue";
+            }
+            usleep(250000); // Espera 250ms antes de intentar nuevamente
+        }
+
+        // Si se adquiere el bloqueo, escribe todos los trabajos pendientes y el nuevo trabajo
+        if (!empty($_SESSION['job_queue'])) {
+            foreach ($_SESSION['job_queue'] as $job) {
+                file_put_contents($this->jobsFile, $job . PHP_EOL, FILE_APPEND | LOCK_EX);
+            }
+            $_SESSION['job_queue'] = []; // Limpiar la cola después de escribir
+        }
+        file_put_contents($this->jobsFile, $newJob . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+        flock($fp, LOCK_UN);
+        fclose($fp);
+
+        return true;
+    }
     /**
     * Write new job to jobs file
     *
@@ -1058,9 +1109,8 @@ class WPMonitor {
         // If the job doesn't exist, add it
         if (!in_array($new_job, $existing_jobs)) {
             try {
-                // Write the new job to the file
-                file_put_contents($job_file, $new_job . "\n", FILE_APPEND | LOCK_EX);
-                return true;
+                // Try to write the new job to the jobs file
+                return $this->tryToWriteJob($new_job);
             } catch (Exception $e) {
                 // Handle error
                 return "error_writing: " . $e->getMessage();

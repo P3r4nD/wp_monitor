@@ -648,29 +648,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Cerrar el modal y restablecer el estado inicial
+                        // Close the modal and reset the initial state
                         const modalElement = document.getElementById('wpm-modal');
                         const modalInstance = bootstrap.Modal.getInstance(modalElement);
                         modalInstance.hide();
 
-                        // Restablecer el primer tab como activo
+                        // Reset the first tab as active
                         const firstTabButton = document.querySelector('#nav-tab button:first-child');
                         const tabInstance = new bootstrap.Tab(firstTabButton);
                         tabInstance.show();
 
-                        // Obtener el índice del row y actualizar su evento onclick
+                        // Get the index of the row and update its onclick event
                         const rowIndex = modalElement.dataset.currentRow;
                         const table = document.getElementById("table-wpm");
                         if (rowIndex) {
                             const row = table.rows[rowIndex];
                             row.onclick = function () {
-                                // Mostrar segundo modal con el warning
+                                // Show second modal with the warning
                                 const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
                                 warningModal.show();
                             };
                         }
+                        if(data.success==='session_queue') {
+                            showToastedMessage('path-to-image', 'New jobs', 'Now', 'There are jobs running, new ones will be added to the session queue.');
+                        }
                     } else {
-                        // Manejar el error
+                        // Erro message
                         console.error('Error:', data.message);
                     }
                 })
@@ -787,7 +790,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
-
+    
     /**
      * Show alert box in Email tab section showing message received from server side sendMail function
      *

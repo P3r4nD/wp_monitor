@@ -38,6 +38,10 @@ msgstr "El archivo de trabajos ejecutados '%s' no existe. Asegúrese de que est�
 msgid "To activate sending messages to Telegram you must configure [telegram_token] and [telegram_chat_id] in your [config.json] file."
 msgstr "Para activar el envío de mensajes a Telegram debes configurar [telegram_token] y [telegram_chat_id] en tu archivo [config.json]."
 
+#: WP_Monitor.php:237
+msgid "The jobs lock file '%s' does not exist. Make sure it is inside the directory you defined in [WPM_PATH]/tmp/ and modify [jobs_file] in [config.json]."
+msgstr "El archivo candado (lock) jobs '%s' no existe. Asegúrate de que se encuentre dentro del directorio que has definido en [WPM_PATH]/tmp/ y modifica [jobs_file] en [config.json]."
+
 #: WP_Monitor.php:554
 msgid "Updated data"
 msgstr "Datos actualizados"

@@ -161,8 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = true;
             foreach ($result_jobs AS $job){
 
-                if ($job->result !== true) {
+                if ($job->result !== true && $job->result !== 'session_queue') {
                     $success = false;
+                }
+                
+                if ($job->result === 'session_queue') {
+                    $success = 'session_queue';
                 }
             }
             echo json_encode(["success" => $success, $result_jobs]);

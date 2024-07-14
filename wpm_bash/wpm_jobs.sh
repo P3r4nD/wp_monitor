@@ -3,7 +3,8 @@
 # Rutas a los archivos
 JOBS_FILE="/opt/wp_monitor/jobs"
 JOBS_EXECUTED_FILE="/opt/wp_monitor/jobs_executed"
-LOCK_FILE="/opt/wp_monitor/wpm_data/tmp/wp_monitor.lock"
+LOCK_FILE="/opt/wp_monitor/wpm_data/tmp/wpm_jobs.lock"
+JOBS_LOCK_FILE="/opt/wp_monitor/wpm_data/tmp/jobs.lock"
 LOG_FILE="/opt/wp_monitor/wpm_data/logs/jobs.log"
 PANEL=""
 
@@ -119,6 +120,10 @@ while true; do
     exec 200>$LOCK_FILE
     flock -n 200 || { echo "The lock could not be acquired"; sleep 5; continue; }
 
+    # Acquire lock for the jobs file
+    exec 201>$JOBS_LOCK_FILE
+    flock 201
+
     # Process each line in the job file
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Skip empty lines
@@ -152,7 +157,10 @@ while true; do
     # Clean up the job file after processing
     > $JOBS_FILE
 
-    # Release the lock
+    # Release the lock for the jobs file
+    flock -u 201
+
+    # Release the lock for the bash script
     flock -u 200
 
     # Wait 5 seconds before next iteration
