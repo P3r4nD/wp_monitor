@@ -538,6 +538,27 @@ if (!isset($_SESSION['first_visit_time'])) {
                 </div>
             </div>
         </div>
+        <!-- Jobs confirmation modal -->
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-md">
+            <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="confirmModalLabel">Confirm Jobs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                  <p>The following tasks will be performed in the domain: <span class="confirm-domain"></span></p>
+                <span class="confirm-domain"></span>
+                <!-- Aquí se mostrarán los jobs -->
+                <ul id="jobs-list" class="list-group"></ul>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button id="confirm-jobs" type="button" class="btn btn-primary btn-sm">Confirm</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- Toast -->
         <div class="toast-container p-3 bottom-0 start-0">
             <div id="liveToastedMessage" class="toast" role="alert" aria-live="assertive" aria-atomic="true">

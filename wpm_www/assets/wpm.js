@@ -19,13 +19,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const api_url = app_url; // Api url. [app_url] is printed by PHP in index.php
     const wpModalElement = document.getElementById('wpm-modal'); // Main modal
-    const wpmModal = new bootstrap.Modal(wpModalElement); // Init bootstrap modal for main WP Monitor modal
+    const wpmModal = new bootstrap.Modal(wpModalElement, {
+        backdrop: 'static',
+        keyboard: false
+    }); // Init bootstrap modal for main WP Monitor modal
     const pluginTable = document.getElementById('table-plugins'); // Plugins table inside modal
     const themeTable = document.getElementById('table-themes'); // Themes table inside modal
     const tableBody = document.querySelector("#table-wpm tbody"); // Table body for main table. Thistable shows WordPress instalations.
     const updateWpCheckbox = document.getElementById('update-wp-checkbox'); //Checkbox to mark update wordpress job
     const sendButton = document.getElementById('send-mail'); // Send email button
     const saveButton = document.getElementById("save-jobs"); // Save jobs button
+    const confirmModalElement = document.getElementById('confirmModal');
+    const confirmModal = new bootstrap.Modal(confirmModalElement, {
+        backdrop: 'static',
+        keyboard: false
+    });
+    let jobs = {};
+    const jobsList = document.getElementById('jobs-list');
+    const confirmJobsButton = document.getElementById('confirm-jobs');
+
     const logForm = document.getElementById("log-form"); // Form to search in logs
     const checkboxMailCopy = document.getElementById('mail-copy'); // Checkbox to show email-copy-data input field
     const inputMailsCopy = document.getElementById('mail-copy-data'); // Comma separated emails to which a copy of the email will be sent
@@ -186,13 +198,15 @@ document.addEventListener("DOMContentLoaded", function () {
         // Get the form element
         const form = document.getElementById('email-form');
         // Reset the form
-        form.reset();
+        if (form) {
+            form.reset();
 
-        // Hide the mail-copy-data input if the checkbox is not checked
-        const mailCopyData = document.getElementById('mail-copy-data');
-        const mailCopyCheckbox = document.getElementById('mail-copy');
-        if (!mailCopyCheckbox.checked) {
-            mailCopyData.classList.add('d-none');
+            // Hide the mail-copy-data input if the checkbox is not checked
+            const mailCopyData = document.getElementById('mail-copy-data');
+            const mailCopyCheckbox = document.getElementById('mail-copy');
+            if (!mailCopyCheckbox.checked) {
+                mailCopyData.classList.add('d-none');
+            }
         }
     }
 
@@ -496,22 +510,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         //Fill email section
                         let emailAdmin = document.getElementById("email-admin");
-                        emailAdmin.textContent = d.admin_email;
+                        
+                        if (emailAdmin) {
+                            emailAdmin.textContent = d.admin_email;
 
-                        //Fill email logs table
-                        if (d.email_log.length) {
-                            for (const l in d.email_log) {
-                                let tr = document.createElement('tr');
-                                //Name cell
-                                let td_log = document.createElement('td');
-                                td_log.innerHTML = d.email_log[l];
-                                td_log.className = 'table-cell';
-                                tr.appendChild(td_log);
-                                tmb.appendChild(tr);
+                            //Fill email logs table
+                            if (d.email_log.length) {
+                                for (const l in d.email_log) {
+                                    let tr = document.createElement('tr');
+                                    //Name cell
+                                    let td_log = document.createElement('td');
+                                    td_log.innerHTML = d.email_log[l];
+                                    td_log.className = 'table-cell';
+                                    tr.appendChild(td_log);
+                                    tmb.appendChild(tr);
+                                }
+                            } else {
+
+                                displayLogMessage(d.logs_msg);
                             }
-                        } else {
-
-                            displayLogMessage(d.logs_msg);
                         }
                     });
                 };
@@ -602,7 +619,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Click event for the button that saves the jobs to be performed
     saveButton.addEventListener('click', function () {
 
-        const jobs = {
+        jobs = {
             wp_action: "do_jobs",
             wp_id: document.getElementById('wp-install-id').value,
             wp_update: updateWpCheckbox ? updateWpCheckbox.checked : false,
@@ -636,7 +653,31 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
+        console.log(jobs);
+        // Limpia la lista de jobs
+        jobsList.innerHTML = '';
 
+        // Añade cada job a la lista
+        jobs.plugins.forEach(job => {
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item';
+            listItem.textContent = job['action'] + " " + job['name'];
+            jobsList.appendChild(listItem);
+        });
+        confirmModalElement.querySelector('.confirm-domain').innerHTML = wpModalElement.querySelector('.modal-title').textContent;
+        wpModalElement.querySelector('.modal-title');
+        wpModalElement.classList.add('modal-disabled');
+        //wpmModal.hide();
+        confirmModal.show();
+        
+    });
+    confirmModalElement.addEventListener('hidden.bs.modal', function () {
+        // Elimina la clase deshabilitada de la modal principal si se cierra el modal de confirmación sin confirmar
+        wpModalElement.classList.remove('modal-disabled');
+    });
+    confirmJobsButton.addEventListener('click', function() {
+        
+        
         // Send json to server
         fetch(app_url, {
             method: 'POST',
@@ -645,43 +686,48 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             body: JSON.stringify(jobs)
         })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Close the modal and reset the initial state
-                        const modalElement = document.getElementById('wpm-modal');
-                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        modalInstance.hide();
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close the modal and reset the initial state
+                const modalElement = document.getElementById('wpm-modal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                confirmModal.hide();
+                modalInstance.hide();
 
-                        // Reset the first tab as active
-                        const firstTabButton = document.querySelector('#nav-tab button:first-child');
-                        const tabInstance = new bootstrap.Tab(firstTabButton);
-                        tabInstance.show();
+                // Reset the first tab as active
+                const firstTabButton = document.querySelector('#nav-tab button:first-child');
+                const tabInstance = new bootstrap.Tab(firstTabButton);
+                tabInstance.show();
 
-                        // Get the index of the row and update its onclick event
-                        const rowIndex = modalElement.dataset.currentRow;
-                        const table = document.getElementById("table-wpm");
-                        if (rowIndex) {
-                            const row = table.rows[rowIndex];
-                            row.onclick = function () {
-                                // Show second modal with the warning
-                                const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
-                                warningModal.show();
-                            };
-                        }
-                        if(data.success==='session_queue') {
-                            showToastedMessage('path-to-image', 'New jobs', 'Now', 'There are jobs running, new ones will be added to the session queue.');
-                        }
-                    } else {
-                        // Erro message
-                        console.error('Error:', data.message);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                });
+                // Get the index of the row and update its onclick event
+                const rowIndex = modalElement.dataset.currentRow;
+                console.log(rowIndex);
+                const table = document.getElementById("table-wpm");
+                if (rowIndex) {
+                    const row = table.rows[rowIndex];
+                    row.onclick = function () {
+                        // Show second modal with the warning
+                        const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
+                        warningModal.show();
+                    };
+                    // Add the text-bg-warning class to all tds in the row
+                    Array.from(row.cells).forEach(cell => {
+                        cell.classList.add('text-bg-warning');
+                    });
+                }
+                if(data.success==='session_queue') {
+                    showToastedMessage('path-to-image', 'New jobs', 'Now', 'There are jobs running, new ones will be added to the session queue.');
+                }
+            } else {
+                // Erro message
+                console.error('Error:', data.message);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        }); 
     });
-
     /**
      * Change event of the main modal that shows or does not show the save button,
      * depending on whether changes have been made to the content of the modal

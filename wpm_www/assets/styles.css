@@ -116,4 +116,7 @@
     line-height: 40px;
     font-size: 0.9em;
 }
-
+.modal-disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
