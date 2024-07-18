@@ -19,24 +19,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const api_url = app_url; // Api url. [app_url] is printed by PHP in index.php
     const wpModalElement = document.getElementById('wpm-modal'); // Main modal
-    const wpmModal = new bootstrap.Modal(wpModalElement, {
-        backdrop: 'static',
-        keyboard: false
-    }); // Init bootstrap modal for main WP Monitor modal
+    const wpmModal = new bootstrap.Modal(wpModalElement, {backdrop: 'static',keyboard: false}); // Init bootstrap modal for main WP Monitor modal
     const pluginTable = document.getElementById('table-plugins'); // Plugins table inside modal
     const themeTable = document.getElementById('table-themes'); // Themes table inside modal
     const tableBody = document.querySelector("#table-wpm tbody"); // Table body for main table. Thistable shows WordPress instalations.
     const updateWpCheckbox = document.getElementById('update-wp-checkbox'); //Checkbox to mark update wordpress job
     const sendButton = document.getElementById('send-mail'); // Send email button
     const saveButton = document.getElementById("save-jobs"); // Save jobs button
-    const confirmModalElement = document.getElementById('confirmModal');
-    const confirmModal = new bootstrap.Modal(confirmModalElement, {
-        backdrop: 'static',
-        keyboard: false
-    });
-    let jobs = {};
-    const jobsList = document.getElementById('jobs-list');
-    const confirmJobsButton = document.getElementById('confirm-jobs');
+    const confirmModalElement = document.getElementById('confirmModal'); // Modal confirm
+    const confirmModal = new bootstrap.Modal(confirmModalElement, {backdrop: 'static',keyboard: false}); // Init bootstrap confirm Modal
+    let jobs = {}; // Jobs object
+    const jobsList = document.getElementById('jobs-list'); // Jobs list in element in confirm modal-body
+    const confirmJobsButton = document.getElementById('confirm-jobs'); // Button to confirm jobs
 
     const logForm = document.getElementById("log-form"); // Form to search in logs
     const checkboxMailCopy = document.getElementById('mail-copy'); // Checkbox to show email-copy-data input field
@@ -654,10 +648,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
         console.log(jobs);
-        // Limpia la lista de jobs
+        // Clear the job list
         jobsList.innerHTML = '';
 
-        // Añade cada job a la lista
+        // Add each job to the list
         jobs.plugins.forEach(job => {
             const listItem = document.createElement('li');
             listItem.className = 'list-group-item';
@@ -672,13 +666,13 @@ document.addEventListener("DOMContentLoaded", function () {
         
     });
     confirmModalElement.addEventListener('hidden.bs.modal', function () {
-        // Elimina la clase deshabilitada de la modal principal si se cierra el modal de confirmación sin confirmar
+        // Remove disabled class from main modal if commit modal is closed without confirming
         wpModalElement.classList.remove('modal-disabled');
     });
     confirmJobsButton.addEventListener('click', function() {
         
         
-        // Send json to server
+        // Send jobs object json to server
         fetch(app_url, {
             method: 'POST',
             headers: {
@@ -720,7 +714,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     showToastedMessage('path-to-image', 'New jobs', 'Now', 'There are jobs running, new ones will be added to the session queue.');
                 }
             } else {
-                // Erro message
+                // Error message
                 console.error('Error:', data.message);
             }
         })
@@ -895,19 +889,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Fetch call
         fetch(api_url, requestOptions)
-                .then(response => response.json())
-                .then(responseData => {
+        .then(response => response.json())
+        .then(responseData => {
 
-                    if (responseData.success) {
-                        clearEmailForm();
-                        appendAlert(responseData.message, 'success');
-                    } else {
-                        appendAlert(responseData.error, 'danger');
-                    }
-                })
-                .catch(error => {
-                    appendAlert('Errors have occurred in sending an email!', 'warning');
-                });
+            if (responseData.success) {
+                clearEmailForm();
+                appendAlert(responseData.message, 'success');
+            } else {
+                appendAlert(responseData.error, 'danger');
+            }
+        })
+        .catch(error => {
+            appendAlert('Errors have occurred in sending an email!', 'warning');
+        });
     });
 
     const generalTabElements = document.querySelectorAll('#nav-tab button[data-bs-toggle="tab"]');
